@@ -9,102 +9,319 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>AskKai</title>
 <style>
-  :root { color-scheme: light dark; --bg:#f6f6f8; --card:#fff; --text:#111; --muted:#666; --accent:#2f6fed; --border:#d8d8de; }
+  :root { color-scheme: light dark; --bg:#f6f6f8; --card:#fff; --text:#111; --muted:#6b6b76; --accent:#2f6fed; --border:#d8d8de; --user:#2f6fed; }
   @media (prefers-color-scheme: dark) { :root { --bg:#0e0e11; --card:#1a1a1f; --text:#f2f2f5; --muted:#9a9aa5; --border:#2c2c34; } }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.4 -apple-system, system-ui, sans-serif;
-         padding: calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 24px); }
-  h1 { font-size:20px; margin:0 0 12px; }
-  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; margin-bottom:12px; }
-  label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
-  textarea, select { width:100%; font:inherit; color:var(--text); background:transparent; border:1px solid var(--border); border-radius:10px; padding:10px; }
-  textarea { resize:vertical; }
-  #doc { min-height:150px; }
-  #q { min-height:70px; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; margin:0; }
+  body { background:var(--bg); color:var(--text); font:16px/1.4 -apple-system, system-ui, sans-serif; display:flex; flex-direction:column; height:100dvh; }
+
+  header { display:flex; align-items:center; gap:6px; padding:calc(env(safe-area-inset-top) + 8px) 12px 8px; border-bottom:1px solid var(--border); background:var(--card); }
+  header h1 { font-size:19px; margin:0; flex:1; }
+  .icon { position:relative; background:transparent; border:0; font-size:22px; padding:6px 8px; border-radius:10px; color:var(--text); width:auto; margin:0; }
+  .icon.on { background:rgba(47,111,237,.15); }
+  #docdot { position:absolute; top:4px; right:4px; width:9px; height:9px; border-radius:50%; background:#2fb755; display:none; }
+
+  #chat { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; -webkit-overflow-scrolling:touch; }
+  .msg { max-width:88%; padding:10px 12px; border-radius:16px; white-space:pre-wrap; word-wrap:break-word; }
+  .me { align-self:flex-end; background:var(--user); color:#fff; border-bottom-right-radius:4px; }
+  .kai { align-self:flex-start; background:var(--card); border:1px solid var(--border); border-bottom-left-radius:4px; }
+  .empty { margin:auto; text-align:center; color:var(--muted); padding:20px; }
+
+  footer { padding:8px 12px calc(env(safe-area-inset-bottom) + 10px); border-top:1px solid var(--border); background:var(--card); }
+  .seg { display:flex; gap:6px; margin-bottom:8px; }
+  .seg button { flex:1; font-size:13px; padding:6px 4px; background:transparent; color:var(--muted); border:1px solid var(--border); border-radius:999px; margin:0; font-weight:500; }
+  .seg button.sel { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .inrow { display:flex; gap:8px; align-items:flex-end; }
+  #q { flex:1; font:inherit; color:var(--text); background:transparent; border:1px solid var(--border); border-radius:18px; padding:9px 12px; resize:none; max-height:120px; }
+  #send, #stop { width:auto; margin:0; padding:10px 16px; border-radius:18px; }
+  #stop { background:#d33; display:none; }
+
   button { font:inherit; font-weight:600; border:0; border-radius:10px; padding:11px 16px; background:var(--accent); color:#fff; width:100%; margin-top:8px; }
   button:disabled { opacity:.45; }
   button.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+
+  .sheet { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:flex-end; z-index:10; }
+  .sheet.open { display:flex; }
+  .panel { background:var(--card); width:100%; max-height:88dvh; overflow-y:auto; border-radius:18px 18px 0 0; padding:14px 14px calc(env(safe-area-inset-bottom) + 16px); }
+  .panel h2 { font-size:17px; margin:0 0 10px; display:flex; justify-content:space-between; align-items:center; }
+  .panel h2 button { width:auto; margin:0; padding:6px 12px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 6px; }
+  textarea.big, select, input[type=range] { width:100%; font:inherit; color:var(--text); background:transparent; border:1px solid var(--border); border-radius:10px; padding:10px; }
+  input[type=range] { padding:0; border:0; }
+  textarea.big { resize:vertical; }
+  #doc { min-height:200px; }
+  #sys { min-height:150px; }
   #bar { height:8px; background:var(--border); border-radius:6px; overflow:hidden; margin-top:10px; display:none; }
   #fill { height:100%; width:0; background:var(--accent); transition:width .2s; }
-  #status { font-size:13px; color:var(--muted); margin-top:8px; white-space:pre-wrap; }
-  #answer { white-space:pre-wrap; min-height:60px; }
-  .row { display:flex; gap:8px; }
-  .row > * { flex:1; }
+  .small { font-size:13px; color:var(--muted); margin-top:8px; white-space:pre-wrap; }
+  .row { display:flex; gap:8px; } .row > * { flex:1; }
+  .toggle { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
+  .toggle input { width:24px; height:24px; }
 </style>
 </head>
 <body>
-<h1>AskKai <span style="font-weight:400;color:var(--muted);font-size:13px">on-device</span></h1>
 
-<div class="card">
-  <label for="model">Model</label>
-  <select id="model">
-    <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen 2.5 1.5B (~1 GB, fast)</option>
-    <option value="gemma-2-2b-it-q4f16_1-MLC">Gemma 2 2B (~1.5 GB)</option>
-    <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B (~2 GB, smarter)</option>
-  </select>
-  <button id="load">Download / Load model</button>
-  <div id="bar"><div id="fill"></div></div>
-  <div id="status">Model not loaded. First time: use Wi-Fi.</div>
-</div>
+<header>
+  <h1>AskKai</h1>
+  <button class="icon" id="btnSpeak" title="Read answers aloud">🔇</button>
+  <button class="icon" id="btnDoc" title="Document">📄<span id="docdot"></span></button>
+  <button class="icon" id="btnSet" title="Settings">⚙️</button>
+</header>
 
-<div class="card">
-  <label for="doc">1. Paste your document (invoice, notes, etc.)</label>
-  <textarea id="doc" placeholder="Paste text here..."></textarea>
-  <div class="row">
-    <button id="scan" class="secondary">📷 Scan with camera</button>
-    <button id="clear" class="secondary">Clear</button>
+<div id="chat"><div class="empty" id="empty">Tap 📄 to add a document,<br>then ask Kai a question below.</div></div>
+
+<footer>
+  <div class="seg" id="seg">
+    <button data-len="short">Short</button>
+    <button data-len="medium">Medium</button>
+    <button data-len="long">No limit</button>
   </div>
-  <input id="cam" type="file" accept="image/*" capture="environment" hidden>
-  <input id="pic" type="file" accept="image/*" hidden>
-  <button id="fromPhotos" class="secondary">🖼 Pick from photos</button>
-  <div id="ocrStatus" style="font-size:13px;color:var(--muted);margin-top:8px"></div>
+  <div class="inrow">
+    <textarea id="q" rows="1" placeholder="Ask Kai..."></textarea>
+    <button id="send">Send</button>
+    <button id="stop">⏹ Stop</button>
+  </div>
+</footer>
+
+<!-- Document sheet -->
+<div class="sheet" id="sheetDoc">
+  <div class="panel">
+    <h2>Document <button id="closeDoc">Done</button></h2>
+    <textarea id="doc" class="big" placeholder="Paste an invoice, email, notes..."></textarea>
+    <div class="row">
+      <button id="scan" class="secondary">📷 Scan</button>
+      <button id="fromPhotos" class="secondary">🖼 Photos</button>
+      <button id="clearDoc" class="secondary">Clear</button>
+    </div>
+    <input id="cam" type="file" accept="image/*" capture="environment" hidden>
+    <input id="pic" type="file" accept="image/*" hidden>
+    <div class="small" id="ocrStatus"></div>
+    <div class="small">Saved on this phone. Kai reads this with every question.</div>
+  </div>
 </div>
 
-<div class="card">
-  <label for="q">2. Ask Kai a question</label>
-  <textarea id="q" placeholder="e.g. What is the total and due date?"></textarea>
-  <label for="len" style="margin-top:10px">Answer length</label>
-  <select id="len">
-    <option value="short">Short (1-2 sentences)</option>
-    <option value="medium" selected>Medium (short paragraph)</option>
-    <option value="long">No limit</option>
-  </select>
-  <button id="ask" disabled>Ask</button>
-  <button id="stop" style="display:none;background:#d33">⏹ Stop</button>
-</div>
+<!-- Settings sheet -->
+<div class="sheet" id="sheetSet">
+  <div class="panel">
+    <h2>Settings <button id="closeSet">Done</button></h2>
 
-<div class="card">
-  <label>Conversation</label>
-  <div id="answer"></div>
-  <button id="newchat" class="secondary">New chat</button>
+    <label for="model">Model</label>
+    <select id="model">
+      <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen 2.5 1.5B (~1 GB, fast)</option>
+      <option value="gemma-2-2b-it-q4f16_1-MLC">Gemma 2 2B (~1.5 GB)</option>
+      <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B (~2 GB, smarter)</option>
+    </select>
+    <button id="load">Download / Load model</button>
+    <div id="bar"><div id="fill"></div></div>
+    <div class="small" id="status">Model not loaded. First time: use Wi-Fi.</div>
+
+    <label for="sys">Kai's instructions (the prompt)</label>
+    <textarea id="sys" class="big"></textarea>
+    <div class="small">Your document and the answer-length rule are added automatically after this text.</div>
+    <div class="row">
+      <button id="resetSys" class="secondary">Reset to default</button>
+    </div>
+
+    <label for="voice">Voice (for reading aloud)</label>
+    <select id="voice"></select>
+    <label for="rate">Speed</label>
+    <input id="rate" type="range" min="0.7" max="1.5" step="0.1" value="1">
+
+    <button id="newchat" class="secondary" style="margin-top:16px">Start a new chat</button>
+  </div>
 </div>
 
 <script type="module">
 import * as webllm from "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.79/+esm";
 
 const $ = id => document.getElementById(id);
-const statusEl = $("status"), bar = $("bar"), fill = $("fill");
-let engine = null, busy = false;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} }
+};
 
-// Service worker (lets the app open offline)
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./AskKai-sw.js").catch(e => console.warn("SW failed", e));
+// ---------- service worker + persistent storage ----------
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("./AskKai-sw.js").catch(() => {});
+(async () => { try { if (navigator.storage?.persist) await navigator.storage.persist(); } catch {} })();
+
+// ---------- state ----------
+let engine = null, busy = false, stopped = false, history = [];
+const DEFAULT_PROMPT = "You are Kai, a friendly and helpful assistant. The user will give you a document and ask questions about it. Answer using only the document. If the answer isn't in the document, say so. Quote numbers and dates exactly as written. If asked about yourself, say you are Kai.";
+const LENGTHS = {
+  short:  { tokens: 150,  rule: "Answer in one or two sentences only." },
+  medium: { tokens: 450,  rule: "Answer in one short paragraph." },
+  long:   { tokens: null, rule: "Give a thorough, detailed answer." }
+};
+const INPUT_BUDGET_CHARS = 9000;
+
+// ---------- sheets ----------
+const open = id => $(id).classList.add("open");
+const close = id => $(id).classList.remove("open");
+$("btnDoc").onclick = () => open("sheetDoc");
+$("btnSet").onclick = () => open("sheetSet");
+$("closeDoc").onclick = () => close("sheetDoc");
+$("closeSet").onclick = () => close("sheetSet");
+for (const id of ["sheetDoc", "sheetSet"]) $(id).addEventListener("click", e => { if (e.target.id === id) close(id); });
+
+// ---------- document ----------
+$("doc").value = store.get("doc", "");
+function updateDot() { $("docdot").style.display = $("doc").value.trim() ? "block" : "none"; }
+updateDot();
+$("doc").addEventListener("input", () => { store.set("doc", $("doc").value); updateDot(); });
+$("clearDoc").onclick = () => { $("doc").value = ""; store.set("doc", ""); updateDot(); };
+
+// ---------- settings: prompt ----------
+$("sys").value = store.get("sys", DEFAULT_PROMPT);
+$("sys").addEventListener("input", () => store.set("sys", $("sys").value));
+$("resetSys").onclick = () => { $("sys").value = DEFAULT_PROMPT; store.set("sys", DEFAULT_PROMPT); };
+$("model").value = store.get("model", $("model").value);
+
+// ---------- length chips ----------
+let lenKey = store.get("len", "medium"); if (!LENGTHS[lenKey]) lenKey = "medium";
+function paintSeg() { document.querySelectorAll("#seg button").forEach(b => b.classList.toggle("sel", b.dataset.len === lenKey)); }
+document.querySelectorAll("#seg button").forEach(b => b.onclick = () => { lenKey = b.dataset.len; store.set("len", lenKey); paintSeg(); });
+paintSeg();
+
+// ---------- text to speech ----------
+let ttsOn = store.get("tts", "0") === "1";
+const synth = window.speechSynthesis;
+function paintSpeak() { $("btnSpeak").textContent = ttsOn ? "🔊" : "🔇"; $("btnSpeak").classList.toggle("on", ttsOn); }
+paintSpeak();
+$("btnSpeak").onclick = () => { ttsOn = !ttsOn; store.set("tts", ttsOn ? "1" : "0"); paintSpeak(); if (!ttsOn && synth) synth.cancel(); };
+function fillVoices() {
+  if (!synth) return;
+  const list = synth.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+  const saved = store.get("voice", "");
+  $("voice").innerHTML = '<option value="">Default</option>' + list.map(v => `<option value="${v.voiceURI}">${v.name} (${v.lang})</option>`).join("");
+  $("voice").value = saved;
+}
+fillVoices(); if (synth) synth.onvoiceschanged = fillVoices;
+$("voice").onchange = () => store.set("voice", $("voice").value);
+$("rate").value = store.get("rate", "1");
+$("rate").onchange = () => store.set("rate", $("rate").value);
+function speak(t) {
+  if (!ttsOn || !synth) return;
+  t = t.replace(/[*#`_>~]/g, "").trim();
+  if (!t) return;
+  const u = new SpeechSynthesisUtterance(t);
+  const v = synth.getVoices().find(x => x.voiceURI === store.get("voice", ""));
+  if (v) u.voice = v;
+  u.rate = parseFloat(store.get("rate", "1")) || 1;
+  synth.speak(u);
 }
 
-// Ask iOS to keep our storage (so the model isn't cleared)
-(async () => {
+// ---------- chat UI ----------
+function addMsg(cls, text) {
+  const e = $("empty"); if (e) e.remove();
+  const d = document.createElement("div");
+  d.className = "msg " + cls; d.textContent = text;
+  $("chat").appendChild(d);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  return d;
+}
+function resetChat() {
+  history = [];
+  $("chat").innerHTML = '<div class="empty" id="empty">Tap 📄 to add a document,<br>then ask Kai a question below.</div>';
+  if (synth) synth.cancel();
+}
+$("newchat").onclick = () => { resetChat(); close("sheetSet"); };
+
+const q = $("q");
+q.addEventListener("input", () => { q.style.height = "auto"; q.style.height = Math.min(q.scrollHeight, 120) + "px"; });
+
+// ---------- model loading ----------
+const statusEl = $("status"), bar = $("bar"), fill = $("fill");
+if (!navigator.gpu) {
+  statusEl.textContent = "WebGPU isn't available in this browser. On iPhone, update iOS and open from Safari or the home screen app.";
+  $("load").disabled = true;
+}
+async function loadModel() {
+  const model = $("model").value;
+  store.set("model", model);
+  $("load").disabled = true; $("send").disabled = true;
+  bar.style.display = "block"; fill.style.width = "0%";
+  statusEl.textContent = "Loading...";
   try {
-    if (navigator.storage?.persist) await navigator.storage.persist();
+    if (engine) { try { await engine.unload(); } catch {} engine = null; }
+    engine = await webllm.CreateMLCEngine(model, {
+      initProgressCallback: p => { fill.style.width = Math.round((p.progress || 0) * 100) + "%"; statusEl.textContent = p.text || ""; }
+    });
+    statusEl.textContent = "Ready. Works offline now.";
+    bar.style.display = "none";
+  } catch (e) {
+    statusEl.textContent = "Load failed: " + (e.message || e) + "\nTry a smaller model or close other apps.";
+  }
+  $("load").disabled = false; $("send").disabled = false;
+}
+$("load").onclick = loadModel;
+
+// auto-load if the model is already saved on this phone; otherwise open settings
+(async () => {
+  if (!navigator.gpu) { open("sheetSet"); return; }
+  try {
+    if (await webllm.hasModelInCache($("model").value)) { await loadModel(); return; }
   } catch {}
+  open("sheetSet");
 })();
 
-// Remember choices
-try {
-  const m = localStorage.getItem("model"); if (m) $("model").value = m;
-  $("doc").value = localStorage.getItem("doc") || "";
-} catch {}
-$("doc").addEventListener("input", () => { try { localStorage.setItem("doc", $("doc").value); } catch {} });
-// ---------- On-device OCR (Tesseract.js, runs fully on the phone) ----------
+// ---------- send ----------
+async function send() {
+  if (busy) return;
+  const text = q.value.trim();
+  if (!text) return;
+  if (!engine) { open("sheetSet"); statusEl.textContent = "Load a model first (tap the button above)."; return; }
+
+  if (synth) { synth.cancel(); if (ttsOn) synth.speak(new SpeechSynthesisUtterance("")); } // unlock audio on iPhone
+  busy = true; stopped = false;
+  $("send").style.display = "none"; $("stop").style.display = "block";
+
+  let doc = $("doc").value.trim(), note = "";
+  if (doc.length > INPUT_BUDGET_CHARS - 2000) {
+    doc = doc.slice(0, INPUT_BUDGET_CHARS - 2000);
+    note = "\n\n(Note: the document was too long, so only the first part was read.)";
+  }
+  const L = LENGTHS[lenKey];
+  const sys = { role: "system", content: ($("sys").value.trim() || DEFAULT_PROMPT) + "\n" + L.rule + "\n\nDOCUMENT:\n" + (doc || "(none provided)") };
+  const msgs = [...history, { role: "user", content: text }];
+  const size = m => m.reduce((n, x) => n + x.content.length, 0);
+  while (msgs.length > 1 && size(msgs) + sys.content.length > INPUT_BUDGET_CHARS) msgs.splice(0, 2);
+
+  addMsg("me", text);
+  q.value = ""; q.style.height = "auto";
+  const out = addMsg("kai", "…");
+  let full = "", spoken = 0, finish = null;
+
+  try {
+    const stream = await engine.chat.completions.create({
+      messages: [sys, ...msgs], stream: true, temperature: 0.3,
+      ...(L.tokens ? { max_tokens: L.tokens } : {})
+    });
+    for await (const chunk of stream) {
+      full += chunk.choices[0]?.delta?.content || "";
+      finish = chunk.choices[0]?.finish_reason || finish;
+      out.textContent = full;
+      $("chat").scrollTop = $("chat").scrollHeight;
+      // speak each finished sentence as it appears
+      const rest = full.slice(spoken);
+      const m = rest.match(/^[\s\S]*[.!?\n]/);
+      if (m) { speak(m[0]); spoken += m[0].length; }
+    }
+    if (stopped) out.textContent = full + "\n\n[Stopped]";
+    else if (finish === "length" && L.tokens) out.textContent = full + "\n\n[Hit the length limit. Type \"continue\" or pick No limit.]";
+    else if (finish === "length") out.textContent = full + "\n\n[Reached the model's memory limit. Type \"continue\" to keep going.]";
+    else if (note) out.textContent = full + note;
+  } catch (e) {
+    out.textContent = full ? full + "\n\n[Stopped: reached the model's memory limit. Type \"continue\" to keep going.]" : "Error: " + (e.message || e);
+  }
+  if (!stopped) speak(full.slice(spoken));
+  if (full) history.push({ role: "user", content: text }, { role: "assistant", content: full });
+  busy = false;
+  $("stop").style.display = "none"; $("send").style.display = "block";
+}
+$("send").onclick = send;
+$("stop").onclick = () => { stopped = true; if (synth) synth.cancel(); try { engine.interruptGenerate(); } catch {} };
+
+// ---------- on-device OCR (Tesseract.js) ----------
 let ocrWorker = null;
 function loadScript(src) {
   return new Promise((res, rej) => {
@@ -120,9 +337,7 @@ async function getOcr() {
     workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
     corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0",
     langPath: "https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int",
-    logger: m => {
-      if (m.status) $("ocrStatus").textContent = "OCR: " + m.status + (m.progress ? " " + Math.round(m.progress * 100) + "%" : "");
-    }
+    logger: m => { if (m.status) $("ocrStatus").textContent = "OCR: " + m.status + (m.progress ? " " + Math.round(m.progress * 100) + "%" : ""); }
   });
   return ocrWorker;
 }
@@ -141,11 +356,11 @@ async function runOcr(file) {
     const img = await shrink(file);
     const w = await getOcr();
     const { data } = await w.recognize(img);
-    const text = (data.text || "").trim();
+    const t = (data.text || "").trim();
     const cur = $("doc").value.trim();
-    $("doc").value = cur ? cur + "\n\n" + text : text;
-    try { localStorage.setItem("doc", $("doc").value); } catch {}
-    $("ocrStatus").textContent = text ? "Done. Text added above - check it for mistakes." : "No text found. Try better light and hold steady.";
+    $("doc").value = cur ? cur + "\n\n" + t : t;
+    store.set("doc", $("doc").value); updateDot();
+    $("ocrStatus").textContent = t ? "Done. Text added above. Check it for mistakes." : "No text found. Try better light and hold steady.";
   } catch (e) {
     $("ocrStatus").textContent = "OCR failed: " + (e.message || e);
   }
@@ -154,107 +369,6 @@ $("scan").onclick = () => $("cam").click();
 $("fromPhotos").onclick = () => $("pic").click();
 $("cam").onchange = e => { runOcr(e.target.files[0]); e.target.value = ""; };
 $("pic").onchange = e => { runOcr(e.target.files[0]); e.target.value = ""; };
-
-$("clear").onclick = () => { $("doc").value = ""; try { localStorage.removeItem("doc"); } catch {} };
-
-if (!navigator.gpu) {
-  statusEl.textContent = "WebGPU isn't available in this browser. On iPhone, update iOS and open from Safari / the home screen app.";
-  $("load").disabled = true;
-}
-
-$("load").onclick = async () => {
-  const model = $("model").value;
-  try { localStorage.setItem("model", model); } catch {}
-  $("load").disabled = true; $("ask").disabled = true;
-  bar.style.display = "block"; fill.style.width = "0%";
-  statusEl.textContent = "Loading " + model + "...";
-  try {
-    if (engine) { try { await engine.unload(); } catch {} engine = null; }
-    engine = await webllm.CreateMLCEngine(model, {
-      initProgressCallback: p => {
-        fill.style.width = Math.round((p.progress || 0) * 100) + "%";
-        statusEl.textContent = p.text || "";
-      }
-    });
-    statusEl.textContent = "Ready. Works offline now.";
-    bar.style.display = "none";
-    $("ask").disabled = false;
-  } catch (e) {
-    statusEl.textContent = "Load failed: " + (e.message || e) + "\nTry a smaller model or close other apps.";
-  }
-  $("load").disabled = false;
-};
-
-let stopped = false;
-$("stop").onclick = () => { stopped = true; try { engine.interruptGenerate(); } catch {} };
-let history = [];           // [{role, content}, ...] previous questions and answers
-const LENGTHS = {
-  short:  { tokens: 150,  rule: "Answer in one or two sentences only." },
-  medium: { tokens: 450,  rule: "Answer in one short paragraph." },
-  long:   { tokens: null, rule: "Give a thorough, detailed answer." }
-};
-try { const l = localStorage.getItem("len"); if (l && LENGTHS[l]) $("len").value = l; } catch {}
-$("len").onchange = () => { try { localStorage.setItem("len", $("len").value); } catch {} };
-const INPUT_BUDGET_CHARS = 9000; // ~2600 tokens of input so everything fits in a 4096 window
-
-function addTurn(label, text) {
-  const d = document.createElement("div");
-  d.style.marginBottom = "12px";
-  const b = document.createElement("div");
-  b.style.cssText = "font-size:12px;color:var(--muted);margin-bottom:2px";
-  b.textContent = label;
-  const t = document.createElement("div");
-  t.textContent = text;
-  d.append(b, t);
-  $("answer").appendChild(d);
-  return t;
-}
-
-$("newchat").onclick = () => { history = []; $("answer").textContent = ""; };
-
-$("ask").onclick = async () => {
-  if (!engine || busy) return;
-  let doc = $("doc").value.trim();
-  const q = $("q").value.trim();
-  if (!q) return;
-  busy = true; stopped = false; $("ask").style.display = "none"; $("stop").style.display = "block";
-
-  let note = "";
-  if (doc.length > INPUT_BUDGET_CHARS - 1500) {
-    doc = doc.slice(0, INPUT_BUDGET_CHARS - 1500);
-    note = "\n(Note: the document was too long, so only the first part was read.)";
-  }
-  const sys = { role: "system", content:
-    "You are Kai, a helpful assistant. Answer questions about the document below. Use only the document. " + LENGTHS[$("len").value].rule + "  If the answer isn't in the document, say so. Quote numbers exactly as written.\n\nDOCUMENT:\n" + (doc || "(none provided)") };
-
-  // keep as many recent turns as fit
-  const msgs = [...history, { role: "user", content: q }];
-  const size = m => m.reduce((n, x) => n + x.content.length, 0);
-  while (msgs.length > 1 && size(msgs) + sys.content.length > INPUT_BUDGET_CHARS) msgs.splice(0, 2);
-
-  addTurn("You", q);
-  $("q").value = "";
-  const out = addTurn("Kai", "…");
-  let text = "", finish = null;
-  try {
-    const stream = await engine.chat.completions.create({
-      messages: [sys, ...msgs], stream: true, temperature: 0.3, ...(LENGTHS[$("len").value].tokens ? { max_tokens: LENGTHS[$("len").value].tokens } : {})
-    });
-    for await (const chunk of stream) {
-      text += chunk.choices[0]?.delta?.content || "";
-      finish = chunk.choices[0]?.finish_reason || finish;
-      out.textContent = text;
-    }
-    if (stopped) out.textContent = text + "\n\n[Stopped]";
-    else if (finish === "length" && LENGTHS[$("len").value].tokens) out.textContent = text + "\n\n[Answer hit the length limit. Type \"continue\" or pick No limit.]";
-    else if (finish === "length") out.textContent = text + "\n\n[Reached the model's memory limit. Type \"continue\" to keep going.]";
-    else if (note) out.textContent = text + note;
-  } catch (e) {
-    out.textContent = text ? text + "\n\n[Stopped: reached the model's memory limit. Type \"continue\" to keep going.]" : "Error: " + (e.message || e);
-  }
-  if (text) { if (history[history.length-1]?.content !== text) history.push({ role: "user", content: q }, { role: "assistant", content: text }); }
-  busy = false; $("stop").style.display = "none"; $("ask").style.display = "block"; $("ask").disabled = false;
-};
 </script>
 </body>
 </html>
