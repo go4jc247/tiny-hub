@@ -50,18 +50,33 @@
 <div class="card">
   <label for="doc">1. Paste your document (invoice, notes, etc.)</label>
   <textarea id="doc" placeholder="Paste text here..."></textarea>
-  <button id="clear" class="secondary">Clear</button>
+  <div class="row">
+    <button id="scan" class="secondary">📷 Scan with camera</button>
+    <button id="clear" class="secondary">Clear</button>
+  </div>
+  <input id="cam" type="file" accept="image/*" capture="environment" hidden>
+  <input id="pic" type="file" accept="image/*" hidden>
+  <button id="fromPhotos" class="secondary">🖼 Pick from photos</button>
+  <div id="ocrStatus" style="font-size:13px;color:var(--muted);margin-top:8px"></div>
 </div>
 
 <div class="card">
   <label for="q">2. Ask Kai a question</label>
   <textarea id="q" placeholder="e.g. What is the total and due date?"></textarea>
+  <label for="len" style="margin-top:10px">Answer length</label>
+  <select id="len">
+    <option value="short">Short (1-2 sentences)</option>
+    <option value="medium" selected>Medium (short paragraph)</option>
+    <option value="long">No limit</option>
+  </select>
   <button id="ask" disabled>Ask</button>
+  <button id="stop" style="display:none;background:#d33">⏹ Stop</button>
 </div>
 
 <div class="card">
-  <label>Kai says</label>
+  <label>Conversation</label>
   <div id="answer"></div>
+  <button id="newchat" class="secondary">New chat</button>
 </div>
 
 <script type="module">
@@ -89,6 +104,57 @@ try {
   $("doc").value = localStorage.getItem("doc") || "";
 } catch {}
 $("doc").addEventListener("input", () => { try { localStorage.setItem("doc", $("doc").value); } catch {} });
+// ---------- On-device OCR (Tesseract.js, runs fully on the phone) ----------
+let ocrWorker = null;
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const el = document.createElement("script");
+    el.src = src; el.onload = res; el.onerror = () => rej(new Error("Couldn't load OCR engine (first use needs Wi-Fi)"));
+    document.head.appendChild(el);
+  });
+}
+async function getOcr() {
+  if (ocrWorker) return ocrWorker;
+  if (!window.Tesseract) await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
+  ocrWorker = await Tesseract.createWorker("eng", 1, {
+    workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
+    corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0",
+    langPath: "https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int",
+    logger: m => {
+      if (m.status) $("ocrStatus").textContent = "OCR: " + m.status + (m.progress ? " " + Math.round(m.progress * 100) + "%" : "");
+    }
+  });
+  return ocrWorker;
+}
+async function shrink(file, maxSide = 2000) {
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  return c;
+}
+async function runOcr(file) {
+  if (!file) return;
+  $("ocrStatus").textContent = "OCR: preparing...";
+  try {
+    const img = await shrink(file);
+    const w = await getOcr();
+    const { data } = await w.recognize(img);
+    const text = (data.text || "").trim();
+    const cur = $("doc").value.trim();
+    $("doc").value = cur ? cur + "\n\n" + text : text;
+    try { localStorage.setItem("doc", $("doc").value); } catch {}
+    $("ocrStatus").textContent = text ? "Done. Text added above - check it for mistakes." : "No text found. Try better light and hold steady.";
+  } catch (e) {
+    $("ocrStatus").textContent = "OCR failed: " + (e.message || e);
+  }
+}
+$("scan").onclick = () => $("cam").click();
+$("fromPhotos").onclick = () => $("pic").click();
+$("cam").onchange = e => { runOcr(e.target.files[0]); e.target.value = ""; };
+$("pic").onchange = e => { runOcr(e.target.files[0]); e.target.value = ""; };
+
 $("clear").onclick = () => { $("doc").value = ""; try { localStorage.removeItem("doc"); } catch {} };
 
 if (!navigator.gpu) {
@@ -119,26 +185,75 @@ $("load").onclick = async () => {
   $("load").disabled = false;
 };
 
+let stopped = false;
+$("stop").onclick = () => { stopped = true; try { engine.interruptGenerate(); } catch {} };
+let history = [];           // [{role, content}, ...] previous questions and answers
+const LENGTHS = {
+  short:  { tokens: 150,  rule: "Answer in one or two sentences only." },
+  medium: { tokens: 450,  rule: "Answer in one short paragraph." },
+  long:   { tokens: null, rule: "Give a thorough, detailed answer." }
+};
+try { const l = localStorage.getItem("len"); if (l && LENGTHS[l]) $("len").value = l; } catch {}
+$("len").onchange = () => { try { localStorage.setItem("len", $("len").value); } catch {} };
+const INPUT_BUDGET_CHARS = 9000; // ~2600 tokens of input so everything fits in a 4096 window
+
+function addTurn(label, text) {
+  const d = document.createElement("div");
+  d.style.marginBottom = "12px";
+  const b = document.createElement("div");
+  b.style.cssText = "font-size:12px;color:var(--muted);margin-bottom:2px";
+  b.textContent = label;
+  const t = document.createElement("div");
+  t.textContent = text;
+  d.append(b, t);
+  $("answer").appendChild(d);
+  return t;
+}
+
+$("newchat").onclick = () => { history = []; $("answer").textContent = ""; };
+
 $("ask").onclick = async () => {
   if (!engine || busy) return;
-  const doc = $("doc").value.trim(), q = $("q").value.trim();
-  if (!q) { $("answer").textContent = "Type a question first."; return; }
-  busy = true; $("ask").disabled = true; $("answer").textContent = "";
-  try {
-    const messages = [
-      { role: "system", content: "You are Kai, a helpful assistant. You answer questions about the provided document. Use only the document. Be brief and precise. If the answer isn't in the document, say so. Quote numbers exactly as written." },
-      { role: "user", content: "DOCUMENT:\n" + (doc || "(none provided)") + "\n\nQUESTION: " + q }
-    ];
-    const stream = await engine.chat.completions.create({ messages, stream: true, temperature: 0.2, max_tokens: 512 });
-    let out = "";
-    for await (const chunk of stream) {
-      out += chunk.choices[0]?.delta?.content || "";
-      $("answer").textContent = out;
-    }
-  } catch (e) {
-    $("answer").textContent = "Error: " + (e.message || e);
+  let doc = $("doc").value.trim();
+  const q = $("q").value.trim();
+  if (!q) return;
+  busy = true; stopped = false; $("ask").style.display = "none"; $("stop").style.display = "block";
+
+  let note = "";
+  if (doc.length > INPUT_BUDGET_CHARS - 1500) {
+    doc = doc.slice(0, INPUT_BUDGET_CHARS - 1500);
+    note = "\n(Note: the document was too long, so only the first part was read.)";
   }
-  busy = false; $("ask").disabled = false;
+  const sys = { role: "system", content:
+    "You are Kai, a helpful assistant. Answer questions about the document below. Use only the document. " + LENGTHS[$("len").value].rule + "  If the answer isn't in the document, say so. Quote numbers exactly as written.\n\nDOCUMENT:\n" + (doc || "(none provided)") };
+
+  // keep as many recent turns as fit
+  const msgs = [...history, { role: "user", content: q }];
+  const size = m => m.reduce((n, x) => n + x.content.length, 0);
+  while (msgs.length > 1 && size(msgs) + sys.content.length > INPUT_BUDGET_CHARS) msgs.splice(0, 2);
+
+  addTurn("You", q);
+  $("q").value = "";
+  const out = addTurn("Kai", "…");
+  let text = "", finish = null;
+  try {
+    const stream = await engine.chat.completions.create({
+      messages: [sys, ...msgs], stream: true, temperature: 0.3, ...(LENGTHS[$("len").value].tokens ? { max_tokens: LENGTHS[$("len").value].tokens } : {})
+    });
+    for await (const chunk of stream) {
+      text += chunk.choices[0]?.delta?.content || "";
+      finish = chunk.choices[0]?.finish_reason || finish;
+      out.textContent = text;
+    }
+    if (stopped) out.textContent = text + "\n\n[Stopped]";
+    else if (finish === "length" && LENGTHS[$("len").value].tokens) out.textContent = text + "\n\n[Answer hit the length limit. Type \"continue\" or pick No limit.]";
+    else if (finish === "length") out.textContent = text + "\n\n[Reached the model's memory limit. Type \"continue\" to keep going.]";
+    else if (note) out.textContent = text + note;
+  } catch (e) {
+    out.textContent = text ? text + "\n\n[Stopped: reached the model's memory limit. Type \"continue\" to keep going.]" : "Error: " + (e.message || e);
+  }
+  if (text) { if (history[history.length-1]?.content !== text) history.push({ role: "user", content: q }, { role: "assistant", content: text }); }
+  busy = false; $("stop").style.display = "none"; $("ask").style.display = "block"; $("ask").disabled = false;
 };
 </script>
 </body>
