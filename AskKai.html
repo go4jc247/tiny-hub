@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AskKai">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>AskKai</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f6f6f8; --card:#fff; --text:#111; --muted:#666; --accent:#2f6fed; --border:#d8d8de; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0e0e11; --card:#1a1a1f; --text:#f2f2f5; --muted:#9a9aa5; --border:#2c2c34; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.4 -apple-system, system-ui, sans-serif;
+         padding: calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 24px); }
+  h1 { font-size:20px; margin:0 0 12px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; margin-bottom:12px; }
+  label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+  textarea, select { width:100%; font:inherit; color:var(--text); background:transparent; border:1px solid var(--border); border-radius:10px; padding:10px; }
+  textarea { resize:vertical; }
+  #doc { min-height:150px; }
+  #q { min-height:70px; }
+  button { font:inherit; font-weight:600; border:0; border-radius:10px; padding:11px 16px; background:var(--accent); color:#fff; width:100%; margin-top:8px; }
+  button:disabled { opacity:.45; }
+  button.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  #bar { height:8px; background:var(--border); border-radius:6px; overflow:hidden; margin-top:10px; display:none; }
+  #fill { height:100%; width:0; background:var(--accent); transition:width .2s; }
+  #status { font-size:13px; color:var(--muted); margin-top:8px; white-space:pre-wrap; }
+  #answer { white-space:pre-wrap; min-height:60px; }
+  .row { display:flex; gap:8px; }
+  .row > * { flex:1; }
+</style>
+</head>
+<body>
+<h1>AskKai <span style="font-weight:400;color:var(--muted);font-size:13px">on-device</span></h1>
+
+<div class="card">
+  <label for="model">Model</label>
+  <select id="model">
+    <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen 2.5 1.5B (~1 GB, fast)</option>
+    <option value="gemma-2-2b-it-q4f16_1-MLC">Gemma 2 2B (~1.5 GB)</option>
+    <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B (~2 GB, smarter)</option>
+  </select>
+  <button id="load">Download / Load model</button>
+  <div id="bar"><div id="fill"></div></div>
+  <div id="status">Model not loaded. First time: use Wi-Fi.</div>
+</div>
+
+<div class="card">
+  <label for="doc">1. Paste your document (invoice, notes, etc.)</label>
+  <textarea id="doc" placeholder="Paste text here..."></textarea>
+  <button id="clear" class="secondary">Clear</button>
+</div>
+
+<div class="card">
+  <label for="q">2. Ask Kai a question</label>
+  <textarea id="q" placeholder="e.g. What is the total and due date?"></textarea>
+  <button id="ask" disabled>Ask</button>
+</div>
+
+<div class="card">
+  <label>Kai says</label>
+  <div id="answer"></div>
+</div>
+
+<script type="module">
+import * as webllm from "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.79/+esm";
+
+const $ = id => document.getElementById(id);
+const statusEl = $("status"), bar = $("bar"), fill = $("fill");
+let engine = null, busy = false;
+
+// Service worker (lets the app open offline)
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./askkai-sw.js").catch(e => console.warn("SW failed", e));
+}
+
+// Ask iOS to keep our storage (so the model isn't cleared)
+(async () => {
+  try {
+    if (navigator.storage?.persist) await navigator.storage.persist();
+  } catch {}
+})();
+
+// Remember choices
+try {
+  const m = localStorage.getItem("model"); if (m) $("model").value = m;
+  $("doc").value = localStorage.getItem("doc") || "";
+} catch {}
+$("doc").addEventListener("input", () => { try { localStorage.setItem("doc", $("doc").value); } catch {} });
+$("clear").onclick = () => { $("doc").value = ""; try { localStorage.removeItem("doc"); } catch {} };
+
+if (!navigator.gpu) {
+  statusEl.textContent = "WebGPU isn't available in this browser. On iPhone, update iOS and open from Safari / the home screen app.";
+  $("load").disabled = true;
+}
+
+$("load").onclick = async () => {
+  const model = $("model").value;
+  try { localStorage.setItem("model", model); } catch {}
+  $("load").disabled = true; $("ask").disabled = true;
+  bar.style.display = "block"; fill.style.width = "0%";
+  statusEl.textContent = "Loading " + model + "...";
+  try {
+    if (engine) { try { await engine.unload(); } catch {} engine = null; }
+    engine = await webllm.CreateMLCEngine(model, {
+      initProgressCallback: p => {
+        fill.style.width = Math.round((p.progress || 0) * 100) + "%";
+        statusEl.textContent = p.text || "";
+      }
+    });
+    statusEl.textContent = "Ready. Works offline now.";
+    bar.style.display = "none";
+    $("ask").disabled = false;
+  } catch (e) {
+    statusEl.textContent = "Load failed: " + (e.message || e) + "\nTry a smaller model or close other apps.";
+  }
+  $("load").disabled = false;
+};
+
+$("ask").onclick = async () => {
+  if (!engine || busy) return;
+  const doc = $("doc").value.trim(), q = $("q").value.trim();
+  if (!q) { $("answer").textContent = "Type a question first."; return; }
+  busy = true; $("ask").disabled = true; $("answer").textContent = "";
+  try {
+    const messages = [
+      { role: "system", content: "You are Kai, a helpful assistant. You answer questions about the provided document. Use only the document. Be brief and precise. If the answer isn't in the document, say so. Quote numbers exactly as written." },
+      { role: "user", content: "DOCUMENT:\n" + (doc || "(none provided)") + "\n\nQUESTION: " + q }
+    ];
+    const stream = await engine.chat.completions.create({ messages, stream: true, temperature: 0.2, max_tokens: 512 });
+    let out = "";
+    for await (const chunk of stream) {
+      out += chunk.choices[0]?.delta?.content || "";
+      $("answer").textContent = out;
+    }
+  } catch (e) {
+    $("answer").textContent = "Error: " + (e.message || e);
+  }
+  busy = false; $("ask").disabled = false;
+};
+</script>
+</body>
+</html>
