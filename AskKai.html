@@ -73,7 +73,7 @@ let engine = null, busy = false;
 
 // Service worker (lets the app open offline)
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./askkai-sw.js").catch(e => console.warn("SW failed", e));
+  navigator.serviceWorker.register("./AskKai-sw.js").catch(e => console.warn("SW failed", e));
 }
 
 // Ask iOS to keep our storage (so the model isn't cleared)
