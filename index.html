@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0025b8">
+<link rel="manifest" id="mf">
+<link rel="icon" type="image/png" id="fav" href="data:image/png;base64,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">
+<link rel="apple-touch-icon" id="ati" href="data:image/png;base64,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">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tiny Hub" id="amt">
+<title>Tiny Hub</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--tx:#1b1f24;--mut:#667085;--bd:#e3e6ea;--ac:#0025b8;--empty:#d9dde3;--ok:#1a7f37;--bad:#cf222e}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1116;--card:#171b22;--tx:#e6e9ee;--mut:#8b94a3;--bd:#262c36;--ac:#4c8dff;--empty:#2a303a;--ok:#3fb950;--bad:#f85149}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-user-select:none;user-select:none}
+input,textarea{-webkit-user-select:text;user-select:text}
+#home{max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+h1{font-size:22px;margin:0}
+.hb{display:flex;gap:8px}
+.btn{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:9px 14px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
+.btn.p{background:var(--ac);border-color:var(--ac);color:#fff}
+.btn.d{color:var(--bad)}
+.btn.s{padding:6px 11px;font-size:14px}
+.btn.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+#grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 14px}
+.slot{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;position:relative}
+.tile{width:100%;aspect-ratio:1;border-radius:22%;border:0;padding:0;overflow:hidden;cursor:pointer;display:grid;place-items:center;background:var(--empty);color:var(--mut);font-size:38px;font-weight:300;touch-action:manipulation}
+.tile img{width:100%;height:100%;display:block;pointer-events:none}
+.tile:active{transform:scale(.96)}
+.nm{font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:18px}
+.edit .slot.full .tile{outline:3px dashed var(--ac);outline-offset:2px}
+.edit .slot.full::after{content:"✎";position:absolute;top:-6px;right:-2px;background:var(--ac);color:#fff;border-radius:50%;width:22px;height:22px;font-size:12px;display:grid;place-items:center}
+footer{text-align:center;margin-top:28px}
+#run{position:fixed;inset:0;background:#fff}
+#frame{width:100%;height:100%;border:0;background:#fff}
+#backBtn{position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom));min-width:38px;height:38px;border-radius:19px;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:15px;padding:0 12px;opacity:.4;z-index:5;cursor:pointer}
+#backBtn:hover,#backBtn:focus,#backBtn:active{opacity:.95}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet .in{background:var(--card);width:100%;max-width:560px;max-height:92dvh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px;display:grid;gap:10px;padding-bottom:calc(16px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+.sheet h2{font-size:17px;margin:0}
+label{display:block;font-size:13px;color:var(--mut);margin-top:4px}
+input[type=text]{width:100%;font:inherit;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx)}
+textarea{width:100%;min-height:150px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1}
+.pv{display:flex;align-items:center;gap:12px}
+.pv img,.pv canvas{width:64px;height:64px;border-radius:22%;background:var(--empty);object-fit:cover;flex:none}
+.mut{color:var(--mut);font-size:13px}
+#msg,#smsg{font-size:14px;min-height:18px}
+.bad{color:var(--bad)}.ok{color:var(--ok)}
+/* icon builder */
+#builder{align-items:stretch}
+#builder .in{max-height:100dvh;height:100dvh;border-radius:0;padding:0;gap:0;display:flex;flex-direction:column;max-width:560px}
+#bTop{flex:none;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--bd);display:flex;gap:14px;align-items:center;justify-content:center}
+#bTop canvas{border-radius:22%;box-shadow:0 2px 8px #0003;background:#fff}
+#bCtl{flex:1;overflow-y:auto;padding:12px 14px;-webkit-overflow-scrolling:touch}
+#bBtns{flex:none;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--bd);display:flex;gap:8px}
+#bBtns .btn{flex:1}
+fieldset{border:1px solid var(--bd);border-radius:12px;margin:0 0 12px;padding:8px 12px 12px}
+legend{font-weight:700;padding:0 6px}
+#bCtl input[type=text]{font-size:26px}
+#bCtl input[type=range]{width:100%}
+#bCtl input[type=color]{width:100%;height:42px;border:0;background:none;padding:0}
+.two{display:flex;gap:8px}.two>div{flex:1}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:70px;background:#000d;color:#fff;padding:8px 14px;border-radius:10px;font-size:14px;z-index:50}
+</style>
+</head>
+<body>
+
+<div id="home">
+  <header>
+    <h1 id="title">Tiny Hub</h1>
+    <div class="hb">
+      <button class="btn s" id="editBtn">Edit</button>
+      <button class="btn s" id="setBtn" aria-label="Settings">⚙</button>
+    </div>
+  </header>
+  <div id="grid"></div>
+</div>
+
+<div id="run" hidden>
+  <iframe id="frame" title="App"
+    sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"></iframe>
+  <button id="backBtn" aria-label="Back to home screen">← Home</button>
+</div>
+
+<!-- slot editor -->
+<div class="sheet" id="editor" hidden>
+  <div class="in">
+    <h2 id="edTitle">New app</h2>
+    <label for="edName">Name</label>
+    <input type="text" id="edName" maxlength="24" placeholder="Name under the icon">
+    <label>Icon</label>
+    <div class="pv"><img id="edIcon" alt=""><div class="row">
+      <button class="btn s" id="edBuild">Build icon</button>
+      <button class="btn s" id="edUpBtn">Upload image</button>
+      <button class="btn s" id="edClear">Remove</button>
+    </div></div>
+    <input type="file" id="edUp" accept="image/*" hidden>
+    <label for="edCode">App (paste the full HTML)</label>
+    <textarea id="edCode" spellcheck="false" placeholder="Paste the full HTML here…"></textarea>
+    <div class="row"><button class="btn s" id="edPick">Choose HTML file…</button></div>
+    <input type="file" id="edFile" accept=".html,.htm,.txt,text/html,text/plain" hidden>
+    <div id="msg"></div>
+    <div class="row">
+      <button class="btn p" id="edSave">Save</button>
+      <button class="btn" id="edCancel">Cancel</button>
+    </div>
+    <button class="btn d" id="edDel" hidden>Delete this app</button>
+  </div>
+</div>
+
+<!-- settings -->
+<div class="sheet" id="settings" hidden>
+  <div class="in">
+    <h2>Home screen</h2>
+    <label for="hName">Name (shown under the icon on your phone)</label>
+    <input type="text" id="hName" maxlength="24" placeholder="Tiny Hub">
+    <label>Icon for your phone's home screen</label>
+    <div class="pv"><img id="hIcon" alt=""><div class="row">
+      <button class="btn s" id="hBuild">Build icon</button>
+      <button class="btn s" id="hUpBtn">Upload image</button>
+      <button class="btn s" id="hReset">Reset</button>
+    </div></div>
+    <input type="file" id="hUp" accept="image/*" hidden>
+    <div class="mut">After changing the icon, remove this shortcut from your phone and add it again. The phone reads the icon only when you add it.</div>
+    <div class="row"><button class="btn p" id="hSave">Save</button><button class="btn" id="hClose">Close</button></div>
+    <h2 style="margin-top:8px">Backup</h2>
+    <div class="row">
+      <button class="btn" id="bkBtn">Save backup</button>
+      <button class="btn" id="rsBtn">Restore backup</button>
+    </div>
+    <input type="file" id="rsFile" accept="application/json,.json" hidden>
+    <div class="mut" id="info"></div>
+    <div id="smsg"></div>
+  </div>
+</div>
+
+<!-- icon builder -->
+<div class="sheet" id="builder" hidden>
+  <div class="in">
+    <div id="bTop"><canvas id="bBig" width="180" height="180" style="width:110px;height:110px"></canvas><canvas id="bSmall" width="180" height="180" style="width:50px;height:50px"></canvas></div>
+    <div id="bCtl">
+      <fieldset><legend>Background</legend>
+        <label>Color</label><input type="color" id="b_bc" value="#0025b8">
+        <label>Background emoji (optional)</label><input type="text" id="b_e1" value="">
+        <label>Size</label><input type="range" id="b_s1" min="20" max="400" value="120">
+        <label>Tile it</label><input type="range" id="b_t1" min="1" max="6" value="1">
+        <div class="two"><div><label>Left / Right</label><input type="range" id="b_x1" min="-90" max="90" value="0"></div>
+        <div><label>Up / Down</label><input type="range" id="b_y1" min="-90" max="90" value="0"></div></div>
+      </fieldset>
+      <fieldset><legend>Foreground</legend>
+        <label>Emoji</label><input type="text" id="b_e2" value="📦">
+        <label>Size</label><input type="range" id="b_s2" min="20" max="300" value="100">
+        <div class="two"><div><label>Left / Right</label><input type="range" id="b_x2" min="-90" max="90" value="0"></div>
+        <div><label>Up / Down</label><input type="range" id="b_y2" min="-90" max="90" value="0"></div></div>
+      </fieldset>
+      <fieldset><legend>Text</legend>
+        <label>Words (optional, use / for a new line)</label><input type="text" id="b_tx" value="" placeholder="e.g. Notes">
+        <label>Color</label><input type="color" id="b_tc" value="#ffffff">
+        <label>Size</label><input type="range" id="b_s3" min="10" max="120" value="40">
+        <div class="two"><div><label>Left / Right</label><input type="range" id="b_x3" min="-90" max="90" value="0"></div>
+        <div><label>Up / Down</label><input type="range" id="b_y3" min="-90" max="90" value="60"></div></div>
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="b_ol" checked> Dark outline</label>
+      </fieldset>
+    </div>
+    <div id="bBtns"><button class="btn" id="bCancel">Cancel</button><button class="btn p" id="bUse">Use this icon</button></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const N = 12;   // number of slots
+
+// Each copy of the launcher lives in its own folder; the folder name keeps its data separate.
+const dirs = location.pathname.split('/').filter(Boolean);
+if (dirs.length && /\.[a-z0-9]+$/i.test(dirs[dirs.length - 1])) dirs.pop();
+const FOLDER = (dirs.pop() || 'root').toLowerCase();
+const P = 'launcher:' + FOLDER + ':';
+const DEFAULT_ICON = $('ati').getAttribute('href');   // the icon embedded in this file
+const ls = {
+  get: k => { try { return localStorage.getItem(P + k); } catch (e) { return null; } },
+  set: (k, v) => { try { localStorage.setItem(P + k, v); return true; } catch (e) { return false; } },
+  del: k => { try { localStorage.removeItem(P + k); } catch (e) {} }
+};
+const jget = (k, d) => { try { const v = JSON.parse(ls.get(k)); return v == null ? d : v; } catch (e) { return d; } };
+function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
+
+let slots = [], home = {}, editMode = false;
+function loadAll() {
+  slots = []; for (let i = 0; i < N; i++) slots.push(jget('slot:' + i, null));
+  home = jget('home', {});
+}
+
+/* ---------- icons ---------- */
+function defaultIcon(name, S) {
+  S = S || 192;
+  const c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d');
+  g.fillStyle = '#0025b8'; g.fillRect(0, 0, S, S);
+  g.fillStyle = '#fff'; g.font = '800 ' + (S * 0.56) + 'px -apple-system,Helvetica,Arial,sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText((name || '?').trim().charAt(0).toUpperCase() || '?', S / 2, S / 2 + S * 0.04);
+  return c.toDataURL('image/png');
+}
+function metaContent(code, name) {
+  const re = /<meta\b[^>]*>/gi; let m;
+  while ((m = re.exec(code))) {
+    const t = m[0], n = (t.match(/\bname\s*=\s*["']([^"']*)["']/i) || [])[1];
+    if (n && n.toLowerCase() === name) return ((t.match(/\bcontent\s*=\s*["']([^"']*)["']/i) || [])[1] || '').trim();
+  }
+  return '';
+}
+// An app can carry its own name and icon inside its HTML:
+//   <meta name="apple-mobile-web-app-title" content="Notes">   (short name; falls back to <title>)
+//   <link rel="icon" href="data:image/png;base64,...">        (or rel="apple-touch-icon")
+function appName(code) {
+  const a = metaContent(code, 'apple-mobile-web-app-title'); if (a) return a;
+  const t = code.match(/<title[^>]*>([^<]*)<\/title>/i); return (t && t[1].trim()) || '';
+}
+function embeddedIcon(code) {
+  const re = /<link\b[^>]*>/gi; let m, best = null;
+  while ((m = re.exec(code))) {
+    const t = m[0], rel = (t.match(/\brel\s*=\s*["']([^"']*)["']/i) || [])[1] || '';
+    if (!/icon/i.test(rel) || /mask-icon/i.test(rel)) continue;
+    const href = (t.match(/\bhref\s*=\s*["'](data:image\/[^"']+)["']/i) || [])[1];
+    if (!href) continue;
+    if (/apple-touch-icon/i.test(rel)) return href;
+    best = best || href;
+  }
+  return best;
+}
+function normalizeIcon(url, size) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement('canvas'); c.width = c.height = size;
+      const m = Math.min(im.width, im.height) || 1;
+      c.getContext('2d').drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, 0, 0, size, size);
+      res(c.toDataURL('image/png'));
+    };
+    im.onerror = rej; im.src = url;
+  });
+}
+function pickImage(size, cb) {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = () => {
+    const f = inp.files[0]; if (!f) return;
+    const url = URL.createObjectURL(f), img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = c.height = size;
+      const g = c.getContext('2d'), m = Math.min(img.width, img.height);
+      g.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      cb(f.type === 'image/png' ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.88));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); toast('Could not read that image'); };
+    img.src = url;
+  };
+  inp.click();
+}
+
+/* ---------- icon builder (same controls as the Icon Editor) ---------- */
+const bv = id => $('b_' + id);
+function drawIcon(c, S) {
+  const g = c.getContext('2d'), k = S / 180;
+  g.clearRect(0, 0, S, S); g.fillStyle = bv('bc').value; g.fillRect(0, 0, S, S);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const f = 'Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif';
+  const e1 = bv('e1').value, s1 = +bv('s1').value * k, n = +bv('t1').value;
+  if (e1) {
+    g.font = s1 + 'px ' + f;
+    if (n === 1) g.fillText(e1, S / 2 + bv('x1').value * k, S / 2 + bv('y1').value * k + s1 * 0.06);
+    else { const step = S / n; g.font = (step * 0.8) + 'px ' + f;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) g.fillText(e1, step * (i + .5) + bv('x1').value * k * 0.3, step * (j + .5) + bv('y1').value * k * 0.3 + step * 0.05); }
+  }
+  const e2 = bv('e2').value, s2 = +bv('s2').value * k;
+  if (e2) { g.font = s2 + 'px ' + f; g.fillText(e2, S / 2 + bv('x2').value * k, S / 2 + bv('y2').value * k + s2 * 0.06); }
+  const tx = bv('tx').value;
+  if (tx) {
+    const s3 = +bv('s3').value * k, lines = tx.split('/');
+    g.font = '800 ' + s3 + 'px -apple-system,Helvetica,Arial,sans-serif'; g.fillStyle = bv('tc').value;
+    g.lineJoin = 'round'; g.lineWidth = s3 * 0.18; g.strokeStyle = '#000a';
+    lines.forEach((t, i) => {
+      const x = S / 2 + bv('x3').value * k, y = S / 2 + bv('y3').value * k + (i - (lines.length - 1) / 2) * s3 * 1.05;
+      if (bv('ol').checked) g.strokeText(t.trim(), x, y); g.fillText(t.trim(), x, y);
+    });
+  }
+}
+function bRender() { drawIcon($('bBig'), 180); drawIcon($('bSmall'), 180); }
+document.querySelectorAll('#bCtl input').forEach(i => i.oninput = bRender);
+let bDone = null, bSize = 192;
+function openBuilder(size, done) { bSize = size; bDone = done; $('builder').hidden = false; bRender(); }
+$('bCancel').onclick = () => { $('builder').hidden = true; bDone = null; };
+$('bUse').onclick = () => {
+  const c = document.createElement('canvas'); c.width = c.height = bSize; drawIcon(c, bSize);
+  const cb = bDone; $('builder').hidden = true; bDone = null;
+  if (cb) cb(c.toDataURL('image/png'));
+};
+
+/* ---------- grid ---------- */
+let pressTimer = 0, suppress = false;
+function renderGrid() {
+  const g = $('grid'); g.textContent = '';
+  document.body.classList.toggle('edit', editMode);
+  $('editBtn').classList.toggle('on', editMode);
+  for (let i = 0; i < N; i++) {
+    const s = slots[i], d = document.createElement('div'); d.className = 'slot' + (s ? ' full' : '');
+    const b = document.createElement('button'); b.className = 'tile'; b.type = 'button';
+    b.setAttribute('aria-label', s ? s.name : 'Empty slot ' + (i + 1));
+    if (s) { const im = document.createElement('img'); im.alt = ''; im.src = s.icon; b.appendChild(im); } else b.textContent = '+';
+    const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = s ? s.name : '';
+    b.addEventListener('click', () => {
+      if (suppress) { suppress = false; return; }
+      if (!s || editMode) openEditor(i); else runSlot(i);
+    });
+    b.addEventListener('pointerdown', () => { clearTimeout(pressTimer); if (s) pressTimer = setTimeout(() => { suppress = true; openEditor(i); }, 600); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearTimeout(pressTimer)));
+    b.addEventListener('contextmenu', e => e.preventDefault());
+    d.appendChild(b); d.appendChild(nm); g.appendChild(d);
+  }
+}
+$('editBtn').onclick = () => { editMode = !editMode; renderGrid(); };
+
+/* ---------- slot editor ---------- */
+let edIdx = -1, edIconData = null, edAuto = null;   // edIconData = icon you chose; edAuto = icon found inside the app's HTML
+function showIcon() { $('edIcon').src = edIconData || edAuto || defaultIcon($('edName').value || $('edName').placeholder || '?', 128); }
+function refreshAuto() {
+  const code = $('edCode').value; if (!code) return;
+  const nm = appName(code); if (nm) $('edName').placeholder = nm.slice(0, 24);
+  const url = embeddedIcon(code);
+  if (url) normalizeIcon(url, 192).then(n => { edAuto = n; showIcon(); }).catch(() => {});
+  else showIcon();
+}
+function openEditor(i) {
+  edIdx = i; const s = slots[i];
+  $('edTitle').textContent = s ? 'Edit ' + s.name : 'New app (slot ' + (i + 1) + ')';
+  $('edName').value = s ? s.name : ''; $('edName').placeholder = 'Name under the icon';
+  edIconData = (s && s.manual !== false) ? s.icon : null; edAuto = (s && s.manual === false) ? s.icon : null;
+  $('edCode').value = ''; $('edCode').placeholder = s ? 'Leave empty to keep the current app, or paste a new version' : 'Paste the full HTML here…';
+  $('edDel').hidden = !s; $('msg').textContent = ''; showIcon(); $('editor').hidden = false;
+}
+$('edName').oninput = () => { if (!edIconData && !edAuto) showIcon(); };
+$('edCode').addEventListener('input', refreshAuto);
+$('edBuild').onclick = () => openBuilder(192, url => { edIconData = url; showIcon(); });
+$('edUpBtn').onclick = () => pickImage(192, url => { edIconData = url; showIcon(); });
+$('edClear').onclick = () => { edIconData = null; showIcon(); };
+$('edPick').onclick = () => $('edFile').click();
+$('edFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  $('edCode').value = await f.text(); refreshAuto(); $('msg').innerHTML = '<span class="ok">' + f.name.replace(/[<>&]/g, '') + ' loaded</span>'; e.target.value = '';
+};
+$('edCancel').onclick = () => { $('editor').hidden = true; };
+$('edSave').onclick = async () => {
+  const old = slots[edIdx]; let code = $('edCode').value;
+  if (!code.trim()) { if (!old) { $('msg').innerHTML = '<span class="bad">Paste the app HTML first.</span>'; return; } code = old.code; }
+  else if (code.trim().length < 20 || code.indexOf('<') < 0) { $('msg').innerHTML = '<span class="bad">That does not look like HTML.</span>'; return; }
+  let name = $('edName').value.trim() || appName(code) || 'App ' + (edIdx + 1);
+  name = name.slice(0, 24);
+  if (!edIconData && $('edCode').value.trim()) {          // new HTML pasted: use the icon inside it, if it has one
+    const url = embeddedIcon(code);
+    if (url) { try { edAuto = await normalizeIcon(url, 192); } catch (e) {} }
+  }
+  const s = { name, icon: edIconData || edAuto || defaultIcon(name, 192), code, manual: !!edIconData };
+  if (!ls.set('slot:' + edIdx, JSON.stringify(s))) { $('msg').innerHTML = '<span class="bad">Could not save: storage is full or blocked.</span>'; return; }
+  slots[edIdx] = s; $('editor').hidden = true; renderGrid();
+};
+$('edDel').onclick = () => {
+  if (!confirm('Delete "' + slots[edIdx].name + '" and its saved data?')) return;
+  ls.del('slot:' + edIdx); ls.del('state:' + edIdx); slots[edIdx] = null; $('editor').hidden = true; renderGrid();
+};
+
+/* ---------- running an app ---------- */
+// Runs inside the app's frame (before its own scripts): gives it a saved localStorage and hands link clicks to the launcher.
+function shim(S) {
+  function post(m) { try { m.runner = 1; parent.postMessage(m, '*'); } catch (e) {} }
+  function mk(persist) {
+    var d = persist ? S : {};
+    var api = {
+      getItem: function (k) { return Object.prototype.hasOwnProperty.call(d, k) ? d[k] : null; },
+      setItem: function (k, v) { d[k] = String(v); if (persist) post({ t: 'save', state: d }); },
+      removeItem: function (k) { delete d[k]; if (persist) post({ t: 'save', state: d }); },
+      clear: function () { for (var k in d) delete d[k]; if (persist) post({ t: 'save', state: d }); },
+      key: function (i) { return Object.keys(d)[i] || null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return Object.keys(d).length; } });
+    return api;
+  }
+  try { Object.defineProperty(window, 'localStorage', { value: mk(true), configurable: true }); } catch (e) {}
+  try { Object.defineProperty(window, 'sessionStorage', { value: mk(false), configurable: true }); } catch (e) {}
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button) return;
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    var h = a.getAttribute('href');
+    if (!h || /^(javascript|mailto|tel|blob|data):/i.test(h)) return;
+    e.preventDefault();
+    if (h.charAt(0) === '#') {
+      var id = h.slice(1); try { id = decodeURIComponent(id); } catch (x) {}
+      var t = id ? (document.getElementById(id) || document.getElementsByName(id)[0]) : document.documentElement;
+      if (t && t.scrollIntoView) t.scrollIntoView();
+      return;
+    }
+    post({ t: 'open', href: h });
+  }, false);
+}
+function inject(code, state) {
+  const json = JSON.stringify(state).replace(/</g, '\\u003c');
+  const tag = '<script>(' + shim.toString() + ')(' + json + ');<\/script>';
+  let m;
+  if ((m = code.match(/<head[^>]*>/i))) return code.slice(0, m.index + m[0].length) + tag + code.slice(m.index + m[0].length);
+  if ((m = code.match(/^\s*<!doctype[^>]*>\s*(<html[^>]*>)?/i))) return code.slice(0, m[0].length) + tag + code.slice(m[0].length);
+  if ((m = code.match(/<html[^>]*>/i))) return code.slice(0, m.index + m[0].length) + tag + code.slice(m.index + m[0].length);
+  return tag + code;
+}
+const frame = $('frame');
+let curSlot = -1, curState = {}, pending = null, timer = 0;
+function flush() {
+  clearTimeout(timer);
+  if (pending === null || curSlot < 0) { pending = null; return; }
+  const ok = ls.set('state:' + curSlot, JSON.stringify(pending)); pending = null;
+  if (!ok) toast('Could not save: storage is full or blocked');
+}
+addEventListener('pagehide', flush);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+function runSlot(i) {
+  curSlot = i; curState = jget('state:' + i, {}); if (typeof curState !== 'object' || !curState) curState = {};
+  frame.srcdoc = inject(slots[i].code, curState);
+  $('home').hidden = true; $('run').hidden = false;
+  try { history.pushState({ launcherRun: i }, ''); } catch (e) {}
+}
+function closeApp() {
+  flush(); curSlot = -1; frame.removeAttribute('srcdoc'); frame.src = 'about:blank';
+  $('run').hidden = true; $('home').hidden = false;
+}
+let ignorePop = false;
+$('backBtn').onclick = () => {
+  if ($('run').hidden) return;
+  closeApp();   // show the grid right away, then quietly drop the history step added when the app opened
+  if (history.state && history.state.launcherRun !== undefined) { ignorePop = true; history.back(); }
+};
+addEventListener('popstate', () => { if (ignorePop) { ignorePop = false; return; } if (!$('run').hidden) closeApp(); });
+addEventListener('message', e => {
+  if (e.source !== frame.contentWindow) return;
+  const d = e.data; if (!d || !d.runner) return;
+  if (d.t === 'save' && d.state && typeof d.state === 'object') {
+    curState = d.state; pending = d.state; clearTimeout(timer); timer = setTimeout(flush, 400);
+  } else if (d.t === 'open' && typeof d.href === 'string') {
+    let u; try { u = new URL(d.href, location.href); } catch (err) { return; }
+    if (!/^https?:$/.test(u.protocol)) return;
+    if (u.origin === location.origin) $('backBtn').click();       // a link back to "home" returns to the grid
+    else window.open(u.href, '_blank', 'noopener');
+  }
+});
+
+/* ---------- home screen name + icon ---------- */
+let hDraft = {};
+function applyHome() {
+  const name = (home.name || 'Tiny Hub'), icon = home.icon || DEFAULT_ICON;
+  document.title = name; $('amt').content = name; $('title').textContent = name;
+  $('ati').href = icon; $('fav').href = icon;
+  const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  const mime = (icon.match(/^data:([^;]+)/) || [])[1] || 'image/png';
+  const mf = { name, short_name: name, start_url: base, scope: base, display: 'standalone', background_color: '#0025b8', theme_color: '#0025b8',
+    icons: [{ src: icon, sizes: '512x512', type: mime, purpose: 'any' }] };
+  try { $('mf').href = URL.createObjectURL(new Blob([JSON.stringify(mf)], { type: 'application/manifest+json' })); } catch (e) {}
+}
+function hShow() { $('hIcon').src = hDraft.icon || DEFAULT_ICON; }
+$('setBtn').onclick = () => {
+  hDraft = { name: home.name || '', icon: home.icon || null };
+  $('hName').value = hDraft.name; hShow();
+  const used = (() => { let n = 0; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(P) === 0) n += k.length + localStorage.getItem(k).length; } } catch (e) {} return n; })();
+  $('info').textContent = 'Folder: ' + FOLDER + ' · ' + slots.filter(Boolean).length + ' of ' + N + ' slots used · ' + (used / 1024).toFixed(0) + ' KB saved';
+  $('smsg').textContent = ''; $('settings').hidden = false;
+};
+$('hBuild').onclick = () => openBuilder(512, url => { hDraft.icon = url; hShow(); });
+$('hUpBtn').onclick = () => pickImage(512, url => { hDraft.icon = url; hShow(); });
+$('hReset').onclick = () => { hDraft.icon = null; hShow(); };
+$('hClose').onclick = () => { $('settings').hidden = true; };
+$('hSave').onclick = () => {
+  hDraft.name = $('hName').value.trim().slice(0, 24);
+  const h = {}; if (hDraft.name) h.name = hDraft.name; if (hDraft.icon) h.icon = hDraft.icon;
+  if (!ls.set('home', JSON.stringify(h))) { $('smsg').innerHTML = '<span class="bad">Could not save: storage is full.</span>'; return; }
+  home = h; applyHome(); $('settings').hidden = true;
+  toast('Saved. Remove and re-add the shortcut on your phone to see a new icon.');
+};
+
+/* ---------- backup / restore ---------- */
+$('bkBtn').onclick = () => {
+  flush();
+  const states = {}; for (let i = 0; i < N; i++) { const s = jget('state:' + i, null); if (s) states[i] = s; }
+  const data = { launcher: 1, folder: FOLDER, savedAt: new Date().toISOString(), home, slots, states };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+  a.download = FOLDER + '-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+$('rsBtn').onclick = () => $('rsFile').click();
+$('rsFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d || d.launcher !== 1 || !Array.isArray(d.slots)) throw new Error('Not a launcher backup');
+    if (!confirm('Replace everything here with the backup from ' + (d.savedAt || 'unknown date') + '?')) return;
+    let ok = ls.set('home', JSON.stringify(d.home || {}));
+    for (let i = 0; i < N; i++) {
+      const s = d.slots[i];
+      if (s && s.code) ok = ls.set('slot:' + i, JSON.stringify(s)) && ok; else ls.del('slot:' + i);
+      if (d.states && d.states[i]) ok = ls.set('state:' + i, JSON.stringify(d.states[i])) && ok; else ls.del('state:' + i);
+    }
+    if (!ok) throw new Error('Could not save everything (storage full)');
+    location.reload();
+  } catch (err) { alert('Restore failed: ' + err.message); }
+  e.target.value = '';
+};
+
+/* ---------- start ---------- */
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
+}
+loadAll(); applyHome(); renderGrid();
+</script>
+</body>
+</html>
