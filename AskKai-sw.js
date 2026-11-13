@@ -1,6 +1,6 @@
 // Tiny service worker: caches the app and the AI engine code so it opens offline.
 // (Model weights are cached separately by the engine itself.)
-const CACHE = "askkai-v1";
+const CACHE = "askkai-v5";
 const SHELL = ["./AskKai.html"];
 
 self.addEventListener("install", e => {
