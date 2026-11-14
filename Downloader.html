@@ -20,17 +20,17 @@
   button { font:inherit; font-weight:600; border:0; border-radius:10px; padding:12px 16px; background:var(--accent); color:#fff; width:100%; margin-top:10px; }
   button:disabled { opacity:.45; }
   button.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  button.done { background:#2f9e55; }
   #bar { height:8px; background:var(--border); border-radius:6px; overflow:hidden; margin-top:12px; display:none; }
   #fill { height:100%; width:0; background:var(--accent); transition:width .2s; }
   #status { font-size:14px; color:var(--muted); margin-top:10px; white-space:pre-wrap; }
-  #save { display:none; }
-  a#dl { display:none; text-align:center; margin-top:12px; color:var(--accent); font-size:14px; }
+  #partsCard { display:none; }
   ol { margin:8px 0 0 18px; padding:0; color:var(--muted); font-size:14px; }
 </style>
 </head>
 <body>
 <h1>KaiModels</h1>
-<p class="sub">Download an AI model once and save it as a single file in your Files app.</p>
+<p class="sub">Download an AI model once and save it to your Files app.</p>
 
 <div class="card">
   <label for="model">Model</label>
@@ -39,19 +39,24 @@
     <option value="gemma-2-2b-it-q4f16_1-MLC">Gemma 2 2B (~1.5 GB)</option>
     <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B (~2 GB, smarter)</option>
   </select>
+  <label style="margin-top:12px"><input type="checkbox" id="test" checked> Test mode: only download the first 2 parts (about 300 MB)</label>
   <button id="go">1. Download model</button>
   <div id="bar"><div id="fill"></div></div>
-  <div id="status">Use Wi-Fi. Keep this screen open and awake while it downloads.</div>
-  <button id="save">2. Save to Files</button>
-  <a id="dl">Save didn't open? Tap here to download instead.</a>
+  <div id="status">Use Wi-Fi. Keep this screen open while it downloads.</div>
+</div>
+
+<div class="card" id="partsCard">
+  <label>2. Save each part to Files (tap one at a time)</label>
+  <div id="parts"></div>
+  <button id="clear" class="secondary">Delete the temporary copy (after all parts are saved)</button>
 </div>
 
 <div class="card">
-  <label>How to use the saved file</label>
+  <label>How to use the saved files</label>
   <ol>
-    <li>Save the file to Files (it ends in .kaimodel).</li>
+    <li>Save every part to Files. Each ends in .kaimodel.</li>
     <li>Open KaiChat, tap ⚙️, then "Restore model from file".</li>
-    <li>Pick the .kaimodel file. Then tap Download / Load model. It loads without downloading anything.</li>
+    <li>Select all the parts at once (or one at a time). Then tap Download / Load model. It loads without downloading.</li>
   </ol>
 </div>
 
@@ -67,10 +72,16 @@ const MODELS = {
     model: "https://huggingface.co/mlc-ai/Llama-3.2-3B-Instruct-q4f16_1-MLC",
     lib: "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/web-llm-models/v0_2_48/Llama-3.2-3B-Instruct-q4f16_1-ctx4k_cs1k-webgpu.wasm" }
 };
+const TMP = "kaimodels-tmp";
+const PART_BYTES = 150 * 1048576; // each saved file stays small so iPhone does not run out of memory
 
 const $ = id => document.getElementById(id);
-let finalBlob = null, finalName = "";
-let wakeLock = null;
+const ls = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} }
+};
+let plan = null, parts = [], wakeLock = null;
 
 async function getJson(url) { const r = await fetch(url); if (!r.ok) throw new Error("HTTP " + r.status + " for " + url.split("/").pop()); return r.json(); }
 async function getBlob(url) {
@@ -81,68 +92,125 @@ async function getBlob(url) {
   }
   throw new Error("Could not download " + url.split("/").pop() + " (" + (err.message || err) + ")");
 }
+function makeParts(files) {
+  const out = []; let cur = [], sz = 0;
+  files.forEach((f, i) => {
+    if (cur.length && sz + f.size > PART_BYTES) { out.push(cur); cur = []; sz = 0; }
+    cur.push(i); sz += f.size;
+  });
+  if (cur.length) out.push(cur);
+  return out;
+}
 
+// ---------- download (each file goes straight to storage, one at a time) ----------
 $("go").onclick = async () => {
   const id = $("model").value, m = MODELS[id];
+  const testMode = $("test").checked;
   const base = m.model + "/resolve/main/";
-  $("go").disabled = true; $("save").style.display = "none"; $("dl").style.display = "none";
+  $("go").disabled = true; $("partsCard").style.display = "none";
   $("bar").style.display = "block"; $("fill").style.width = "0%";
-  finalBlob = null;
+  ls.del("kmplan"); ls.del("kmdone");
   try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen"); } catch {}
   try {
+    const cache = await caches.open(TMP);
     $("status").textContent = "Reading the file list...";
     const cfg = await getJson(base + "mlc-chat-config.json");
     const nd = await getJson(base + "ndarray-cache.json");
     const shards = [...new Set(nd.records.map(r => r.dataPath))];
     const tok = cfg.tokenizer_files || ["tokenizer.json"];
-
-    const plan = [
+    const list = [
       { cache: "webllm/config", url: base + "mlc-chat-config.json" },
       { cache: "webllm/model",  url: base + "ndarray-cache.json" },
       ...tok.map(f => ({ cache: "webllm/model", url: base + f })),
       ...shards.map(f => ({ cache: "webllm/model", url: base + f })),
       { cache: "webllm/wasm",   url: m.lib }
     ];
-
-    const files = [], blobs = [];
-    let bytes = 0;
-    for (let i = 0; i < plan.length; i++) {
-      $("status").textContent = "Downloading file " + (i + 1) + " of " + plan.length + "\n" + (bytes / 1048576).toFixed(0) + " MB so far";
-      const b = await getBlob(plan[i].url);
-      bytes += b.size;
-      files.push({ cache: plan[i].cache, url: plan[i].url, type: b.type || "application/octet-stream", size: b.size });
-      blobs.push(b);
-      $("fill").style.width = Math.round(((i + 1) / plan.length) * 100) + "%";
+    const files = []; let bytes = 0;
+    for (let i = 0; i < list.length; i++) {
+      $("status").textContent = "Downloading file " + (i + 1) + " of " + list.length + "\n" + (bytes / 1048576).toFixed(0) + " MB so far";
+      let hit = await cache.match(list[i].url), size, type;
+      if (hit) { size = parseInt(hit.headers.get("Content-Length") || "0", 10); type = hit.headers.get("Content-Type") || "application/octet-stream"; }
+      if (!hit || !size) {
+        const b = await getBlob(list[i].url);
+        size = b.size; type = b.type || "application/octet-stream";
+        await cache.put(list[i].url, new Response(b, { headers: { "Content-Type": type, "Content-Length": String(size) } }));
+      }
+      bytes += size;
+      files.push({ cache: list[i].cache, url: list[i].url, type, size });
+      $("fill").style.width = testMode ? Math.min(100, Math.round(bytes / (2 * PART_BYTES) * 100)) + "%" : Math.round(((i + 1) / list.length) * 100) + "%";
+      if (testMode && bytes >= 2 * PART_BYTES) break;
     }
-
-    const header = new TextEncoder().encode(JSON.stringify({ v: 1, model: id, files }));
-    const len = new Uint8Array(4); new DataView(len.buffer).setUint32(0, header.length);
-    finalBlob = new Blob([len, header, ...blobs], { type: "application/octet-stream" });
-    finalName = id + ".kaimodel";
-
-    $("status").textContent = "Done: " + plan.length + " files, " + (finalBlob.size / 1048576).toFixed(0) + " MB.\nTap Save to Files.";
-    $("save").style.display = "block";
-    $("dl").href = URL.createObjectURL(finalBlob); $("dl").download = finalName;
+    ls.set("kmplan", { model: id, files, test: testMode });
+    $("status").textContent = (testMode ? "TEST download finished" : "Download finished") + " (" + (bytes / 1048576).toFixed(0) + " MB). Now save each part below.";
+    showParts();
   } catch (e) {
-    $("status").textContent = "Stopped: " + (e.message || e) + "\nCheck your connection and try again.";
+    $("status").textContent = "Stopped: " + (e.message || e) + "\nTap Download again. It continues where it stopped.";
   }
   try { if (wakeLock) wakeLock.release(); } catch {}
   $("go").disabled = false;
 };
 
-$("save").onclick = async () => {
-  if (!finalBlob) return;
-  const file = new File([finalBlob], finalName, { type: "application/octet-stream" });
+// ---------- save parts ----------
+function showParts() {
+  plan = ls.get("kmplan");
+  if (!plan) { $("partsCard").style.display = "none"; return; }
+  parts = makeParts(plan.files);
+  const done = ls.get("kmdone") || [];
+  $("partsCard").style.display = "block";
+  $("parts").innerHTML = "";
+  parts.forEach((idxs, pi) => {
+    const mb = (idxs.reduce((n, i) => n + plan.files[i].size, 0) / 1048576).toFixed(0);
+    const b = document.createElement("button");
+    b.className = done.includes(pi) ? "done" : "";
+    b.textContent = (done.includes(pi) ? "✓ " : "") + "Save part " + (pi + 1) + " of " + parts.length + " (" + mb + " MB)";
+    b.onclick = () => savePart(pi, b);
+    $("parts").appendChild(b);
+  });
+}
+async function savePart(pi, btn) {
+  btn.disabled = true;
+  const old = btn.textContent; btn.textContent = "Preparing...";
   try {
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file] });
-      $("status").textContent = "In the share sheet, choose Save to Files.";
-      $("dl").style.display = "block";
-      return;
+    const cache = await caches.open(TMP);
+    const metaFiles = parts[pi].map(i => plan.files[i]);
+    const blobs = [];
+    for (const f of metaFiles) {
+      const r = await cache.match(f.url);
+      if (!r) throw new Error("A temporary file is missing. Tap Download model again.");
+      blobs.push(await r.blob());
     }
-  } catch (e) { if (e && e.name === "AbortError") { $("dl").style.display = "block"; return; } }
-  $("dl").style.display = "block"; $("dl").click();
+    const header = new TextEncoder().encode(JSON.stringify({ v: 1, model: plan.model, part: pi + 1, of: parts.length, files: metaFiles }));
+    const len = new Uint8Array(4); new DataView(len.buffer).setUint32(0, header.length);
+    const blob = new Blob([len, header, ...blobs], { type: "application/octet-stream" });
+    const name = (plan.test ? "TEST-" : "") + plan.model + ".part" + (pi + 1) + "of" + parts.length + ".kaimodel";
+    const file = new File([blob], name, { type: "application/octet-stream" });
+    let saved = false;
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); saved = true; }
+    } catch (e) { if (e && e.name === "AbortError") { btn.textContent = old; btn.disabled = false; return; } }
+    if (!saved) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    }
+    const done = ls.get("kmdone") || []; if (!done.includes(pi)) done.push(pi); ls.set("kmdone", done);
+    btn.className = "done"; btn.textContent = "✓ Part " + (pi + 1) + " of " + parts.length + " saved (tap to save again)";
+  } catch (e) {
+    btn.textContent = old; $("status").textContent = "Save failed: " + (e.message || e);
+  }
+  btn.disabled = false;
+}
+$("clear").onclick = async () => {
+  if (!confirm("Delete the temporary copy? Only do this after every part is saved to Files.")) return;
+  try { await caches.delete(TMP); } catch {}
+  ls.del("kmplan"); ls.del("kmdone"); plan = null;
+  $("partsCard").style.display = "none";
+  $("status").textContent = "Temporary copy deleted.";
 };
+
+// if the page was reloaded after a finished download, bring the save buttons back
+showParts();
+if (plan) $("status").textContent = "Found a finished " + (plan.test ? "TEST " : "") + "download of " + plan.model + ". Save the parts below.";
 </script>
 </body>
 </html>
