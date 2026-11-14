@@ -86,6 +86,7 @@ legend{font-weight:700;padding:0 6px}
 
 <div id="run" hidden>
   <iframe id="frame" title="App"
+    allow="microphone; camera; geolocation; clipboard-read; clipboard-write; web-share; fullscreen; autoplay"
     sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"></iframe>
   <button id="backBtn" aria-label="Back to home screen">← Home</button>
 </div>
@@ -106,6 +107,7 @@ legend{font-weight:700;padding:0 6px}
     <label for="edCode">App (paste the full HTML)</label>
     <textarea id="edCode" spellcheck="false" placeholder="Paste the full HTML here…"></textarea>
     <div class="row"><button class="btn s" id="edPick">Choose HTML file…</button></div>
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="edTrust" style="width:auto;margin-top:3px"><span>Trusted app: allow microphone / camera<br><small style="opacity:.7">Only for apps you wrote or trust. It can then also read this hub's saved data.</small></span></label>
     <input type="file" id="edFile" accept=".html,.htm,.txt,text/html,text/plain" hidden>
     <div id="msg"></div>
     <div class="row">
@@ -409,7 +411,7 @@ function openEditor(i) {
   $('edTitle').textContent = s ? 'Edit ' + s.name : 'New app (slot ' + (i + 1) + ')';
   $('edName').value = s ? s.name : ''; $('edName').placeholder = 'Name under the icon';
   edIconData = (s && s.manual !== false) ? s.icon : null; edAuto = (s && s.manual === false) ? s.icon : null;
-  $('edCode').value = ''; $('edCode').placeholder = s ? 'Leave empty to keep the current app, or paste a new version' : 'Paste the full HTML here…';
+  $('edTrust').checked = !!(s && s.trusted); $('edCode').value = ''; $('edCode').placeholder = s ? 'Leave empty to keep the current app, or paste a new version' : 'Paste the full HTML here…';
   $('edDel').hidden = !s; $('msg').textContent = ''; showIcon(); $('editor').hidden = false;
 }
 $('edName').oninput = () => { if (!edIconData && !edAuto) showIcon(); };
@@ -433,7 +435,7 @@ $('edSave').onclick = async () => {
     const url = embeddedIcon(code);
     if (url) { try { edAuto = await normalizeIcon(url, 192); } catch (e) {} }
   }
-  const s = { name, icon: edIconData || edAuto || defaultIcon(name, 192), code, manual: !!edIconData };
+  const s = { name, icon: edIconData || edAuto || defaultIcon(name, 192), code, manual: !!edIconData, trusted: $('edTrust').checked };
   if (!ls.set('slot:' + edIdx, JSON.stringify(s))) { $('msg').innerHTML = '<span class="bad">Could not save: storage is full or blocked.</span>'; return; }
   slots[edIdx] = s; $('editor').hidden = true; renderGrid();
 };
@@ -497,6 +499,8 @@ addEventListener('pagehide', flush);
 document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
 function runSlot(i) {
   curSlot = i; curState = jget('state:' + i, {}); if (typeof curState !== 'object' || !curState) curState = {};
+  const SB = 'allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads';
+  frame.setAttribute('sandbox', slots[i].trusted ? SB + ' allow-same-origin' : SB);
   frame.srcdoc = inject(slots[i].code, curState);
   $('home').hidden = true; $('run').hidden = false;
   try { history.pushState({ launcherRun: i }, ''); } catch (e) {}
