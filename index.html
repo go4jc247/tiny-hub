@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" id="fav">
 <link rel="apple-touch-icon" id="ati">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tiny Hub" id="amt">
 <title>Tiny Hub</title>
@@ -19,7 +20,9 @@
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-user-select:none;user-select:none}
 input,textarea{-webkit-user-select:text;user-select:text}
-#home{max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
+#home{max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+body.down .hb{display:none}
+#boot{margin-top:24px;text-align:center}
 header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
 h1{font-size:22px;margin:0}
 .hb{display:flex;gap:8px}
@@ -37,9 +40,15 @@ h1{font-size:22px;margin:0}
 .edit .slot.full .tile{outline:3px dashed var(--ac);outline-offset:2px}
 .edit .slot.full::after{content:"✎";position:absolute;top:-6px;right:-2px;background:var(--ac);color:#fff;border-radius:50%;width:22px;height:22px;font-size:12px;display:grid;place-items:center}
 footer{text-align:center;margin-top:28px}
-#run{position:fixed;inset:0;background:#fff}
-#frame{width:100%;height:100%;border:0;background:#fff}
-#backBtn{position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom));min-width:38px;height:38px;border-radius:19px;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:15px;padding:0 12px;opacity:.4;z-index:5;cursor:pointer}
+/* While an app runs, #run fills the screen. Its padding keeps the app clear of the clock and the notch, and its
+   background colour is what shows in that strip (the phone also reads the status bar colour from it). */
+#run{position:fixed;inset:0;background:#000;box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+#run.edge{padding:0}
+/* The same strip for the hub's own pages: blue, so the white clock stays readable above the grid and the sheets. */
+#sbfill{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:#0025b8;z-index:30}
+body.running #sbfill{display:none}
+#frame{display:block;width:100%;height:100%;border:0;background:#fff}
+#backBtn{position:fixed;left:calc(8px + env(safe-area-inset-left));bottom:calc(8px + env(safe-area-inset-bottom));min-width:38px;height:38px;border-radius:19px;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:15px;padding:0 12px;opacity:.4;z-index:5;cursor:pointer}
 #backBtn:hover,#backBtn:focus,#backBtn:active{opacity:.95}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;z-index:20}
 .sheet .in{background:var(--card);width:100%;max-width:560px;max-height:92dvh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px;display:grid;gap:10px;padding-bottom:calc(16px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
@@ -72,6 +81,7 @@ legend{font-weight:700;padding:0 6px}
 </style>
 </head>
 <body>
+<div id="sbfill"></div>
 
 <div id="home">
   <header>
@@ -82,12 +92,14 @@ legend{font-weight:700;padding:0 6px}
     </div>
   </header>
   <div id="grid"></div>
+  <div id="boot" hidden>
+    <p id="bootMsg" class="bad"></p>
+    <button class="btn" id="bootRetry">Try again</button>
+  </div>
 </div>
 
+<!-- The app's frame is created here each time an app is opened (see runSlot). -->
 <div id="run" hidden>
-  <iframe id="frame" title="App"
-    allow="microphone; camera; geolocation; clipboard-read; clipboard-write; web-share; fullscreen; autoplay"
-    sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"></iframe>
   <button id="backBtn" aria-label="Back to home screen">← Home</button>
 </div>
 
@@ -107,7 +119,23 @@ legend{font-weight:700;padding:0 6px}
     <label for="edCode">App (paste the full HTML)</label>
     <textarea id="edCode" spellcheck="false" placeholder="Paste the full HTML here…"></textarea>
     <div class="row"><button class="btn s" id="edPick">Choose HTML file…</button></div>
-    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="edTrust" style="width:auto;margin-top:3px"><span>Trusted app: allow microphone / camera<br><small style="opacity:.7">Only for apps you wrote or trust. It can then also read this hub's saved data.</small></span></label>
+    <details id="edOpts" style="margin-top:10px"><summary style="font-weight:600;cursor:pointer">App settings: permissions, colour, zoom</summary>
+      <div style="display:grid;gap:8px;margin-top:10px">
+        <b>Permissions this app may ask for</b>
+        <small style="opacity:.7">Anything not ticked is refused. A ticked permission still asks you to confirm the first time the app uses it, each time you open the app. Tick these only for apps you trust: an app with any permission can also read this hub's saved data.</small>
+        <label><input type="checkbox" id="pAll"> Allow everything</label>
+        <label><input type="checkbox" class="pk" data-k="mic"> Microphone</label>
+        <label><input type="checkbox" class="pk" data-k="cam"> Camera</label>
+        <label><input type="checkbox" class="pk" data-k="geo"> Location</label>
+        <label><input type="checkbox" class="pk" data-k="clip"> Clipboard: read what you copied (paste)</label>
+        <label><input type="checkbox" class="pk" data-k="notif"> Notifications</label>
+        <label><input type="checkbox" class="pk" data-k="motion"> Motion and tilt sensors</label>
+        <b style="margin-top:6px">Background colour</b>
+        <small style="opacity:.7">Fills the strip at the top (clock and battery) and shows behind the app. The clock is white, so darker colours work best. Default: black strip.</small>
+        <div class="row" style="align-items:center"><input type="color" id="edBg" value="#ffffff" style="width:60px;height:38px;padding:0"><button class="btn s" id="edBgReset" type="button">Default</button><span id="edBgNote" style="opacity:.7;font-size:13px"></span></div>
+        <label style="margin-top:6px"><input type="checkbox" id="edEdge"> Let the app fill the top strip too<br><small style="opacity:.7">The clock then sits on top of the app. Best for full-screen games.</small></label>
+        <label style="margin-top:6px"><input type="checkbox" id="edNoZoom"> Block pinch-zoom and double-tap zoom</label>
+      </div></details>
     <input type="file" id="edFile" accept=".html,.htm,.txt,text/html,text/plain" hidden>
     <div id="msg"></div>
     <div class="row">
@@ -131,7 +159,7 @@ legend{font-weight:700;padding:0 6px}
       <button class="btn s" id="hReset">Reset</button>
     </div></div>
     <input type="file" id="hUp" accept="image/*" hidden>
-    <div class="mut">After changing the icon, remove this shortcut from your phone and add it again. The phone reads the icon only when you add it.</div>
+    <div class="mut">Your phone reads the name and icon only when the shortcut is added, so a change shows after you remove the shortcut and add it again. <b>Removing the shortcut also erases the apps saved in it:</b> use Save backup first and Restore backup afterwards.</div>
     <div class="row"><button class="btn p" id="hSave">Save</button><button class="btn" id="hClose">Close</button></div>
     <h2 style="margin-top:8px">Backup</h2>
     <div class="row">
@@ -199,71 +227,148 @@ function drawHubIcon(S) {
   return c.toDataURL('image/png');
 }
 const DEFAULT_ICON = drawHubIcon(512);
-/* Storage: IndexedDB (gigabytes) with an in-memory copy so the rest of the code stays synchronous.
-   Falls back to localStorage (about 5 MB) if IndexedDB is not available, e.g. some private modes. */
+const BUILD = '2026-11-15';            // version of this file, shown in Settings. Raise it whenever the file changes.
+
+/* Storage: IndexedDB (room for large apps) with a copy in memory, so reading stays instant.
+   Falls back to localStorage (about 5 MB) only where IndexedDB does not exist, e.g. some private modes. */
+const MARK = 'tinyhub-idb:' + FOLDER;  // set once IndexedDB has been used here, so a later hiccup never falls back to an empty hub
 const mem = new Map();
-let idb = null, saveFail = false; const pend = new Set();
+let idb = null, useIdb = false, lastFailToast = 0;
+const pend = new Set();
+const track = p => { pend.add(p); p.then(() => pend.delete(p)); return p; };
+const idbRange = () => IDBKeyRange.bound(P, P + '\uffff');     // only this folder's keys
 function idbOpen() {
   return new Promise((res, rej) => {
-    let r; try { r = indexedDB.open('tinyhub', 1); } catch (e) { rej(e); return; }
-    r.onupgradeneeded = () => r.result.createObjectStore('kv');
-    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error('blocked'));
+    let r, done = false;
+    const t = setTimeout(() => { if (!done) { done = true; rej(new Error('storage did not answer')); } }, 8000);
+    try { r = indexedDB.open('tinyhub', 1); } catch (e) { done = true; clearTimeout(t); rej(e); return; }
+    r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains('kv')) r.result.createObjectStore('kv'); };
+    r.onsuccess = () => {
+      const db = r.result;
+      if (done) { db.close(); return; }
+      done = true; clearTimeout(t);
+      db.onversionchange = () => db.close();     // another page wants to change the database: do not block it
+      res(db);
+    };
+    r.onerror = () => { if (!done) { done = true; clearTimeout(t); rej(r.error || new Error('storage error')); } };
   });
 }
-function idbAll(db) {
+function idbRead(db) {                 // everything this folder has saved, as { fullKey: value }
   return new Promise((res, rej) => {
-    const out = {}, tx = db.transaction('kv', 'readonly'), c = tx.objectStore('kv').openCursor();
+    const out = {};
+    let tx; try { tx = db.transaction('kv', 'readonly'); } catch (e) { rej(e); return; }
+    const c = tx.objectStore('kv').openCursor(idbRange());
     c.onsuccess = () => { const cur = c.result; if (cur) { out[cur.key] = cur.value; cur.continue(); } else res(out); };
-    c.onerror = () => rej(c.error);
+    c.onerror = () => rej(c.error || new Error('read failed'));
+    tx.onabort = () => rej(tx.error || new Error('read failed'));
   });
 }
-function idbWrite(k, v) {        // v === null deletes
-  if (!idb) return;
-  try {
-    const tx = idb.transaction('kv', 'readwrite'), os = tx.objectStore('kv');
-    if (v === null) os.delete(P + k); else os.put(v, P + k);
-    const done = new Promise(res => { tx.oncomplete = () => { pend.delete(done); res(); }; tx.onerror = tx.onabort = () => { pend.delete(done); res(); if (!saveFail) { saveFail = true; toast('Could not save: storage is full or blocked.'); } }; });
-    pend.add(done);
-  } catch (e) { if (!saveFail) { saveFail = true; toast('Could not save: storage is full or blocked.'); } }
+// Runs fn(store) in one read-write step. Resolves true once it is safely stored, false if it failed.
+function idbTx(fn) {
+  return new Promise(res => {
+    let tx;
+    try { tx = idb.transaction('kv', 'readwrite'); fn(tx.objectStore('kv')); }
+    catch (e) { try { if (tx) tx.abort(); } catch (x) {} res(false); return; }
+    tx.oncomplete = () => res(true);
+    tx.onabort = () => res(false);
+    try { if (tx.commit) tx.commit(); } catch (e) {}     // do not wait for the next idle moment: matters when the hub is being closed
+  });
 }
+async function idbStore(fn) {
+  if (await idbTx(fn)) return true;
+  // The phone can drop the database connection while the hub sits in the background: open it again and try once more.
+  try {
+    const db = await idbOpen(); try { if (idb) idb.close(); } catch (e) {} idb = db;
+    const n = await new Promise(res => {
+      try { const q = db.transaction('kv', 'readonly').objectStore('kv').count(idbRange()); q.onsuccess = () => res(q.result); q.onerror = () => res(-1); }
+      catch (e) { res(-1); }
+    });
+    if (n === 0 && mem.size) return await idbTx(os => { mem.forEach((v, k) => os.put(v, P + k)); fn(os); });   // it came back empty: put everything back
+    return await idbTx(fn);
+  } catch (e) { return false; }
+}
+function saveFailed() { if (Date.now() - lastFailToast > 4000) { lastFailToast = Date.now(); toast('Could not save: storage is full or blocked.'); } }
 const ls = {
   get: k => mem.has(k) ? mem.get(k) : null,
-  set: (k, v) => {
-    if (idb) { mem.set(k, v); idbWrite(k, v); return true; }
-    try { localStorage.setItem(P + k, v); mem.set(k, v); return true; } catch (e) { return false; }
+  // The copy in memory changes at once. The promise says whether it was really stored; if it was not, the change is undone.
+  set(k, v) {
+    if (!useIdb) { try { localStorage.setItem(P + k, v); mem.set(k, v); return Promise.resolve(true); } catch (e) { return Promise.resolve(false); } }
+    const had = mem.has(k), old = mem.get(k);
+    mem.set(k, v);
+    return track(idbStore(os => os.put(v, P + k)).then(ok => {
+      if (!ok && mem.get(k) === v) { if (had) mem.set(k, old); else mem.delete(k); }
+      return ok;
+    }));
   },
-  flush: () => Promise.all([...pend]),
-  del: k => { mem.delete(k); if (idb) idbWrite(k, null); else { try { localStorage.removeItem(P + k); } catch (e) {} } }
+  // Several changes in one step: either all of them are stored, or none.
+  many(sets, dels) {
+    const apply = () => { dels.forEach(k => mem.delete(k)); for (const k in sets) mem.set(k, sets[k]); };
+    if (!useIdb) {
+      try { dels.forEach(k => localStorage.removeItem(P + k)); for (const k in sets) localStorage.setItem(P + k, sets[k]); }
+      catch (e) {
+        dels.concat(Object.keys(sets)).forEach(k => { try { if (mem.has(k)) localStorage.setItem(P + k, mem.get(k)); else localStorage.removeItem(P + k); } catch (x) {} });
+        return Promise.resolve(false);
+      }
+      apply(); return Promise.resolve(true);
+    }
+    return track(idbStore(os => { dels.forEach(k => os.delete(P + k)); for (const k in sets) os.put(sets[k], P + k); }).then(ok => {
+      if (ok) { apply(); dels.forEach(k => { try { localStorage.removeItem(P + k); } catch (e) {} }); }   // also clears a copy left by the old storage
+      return ok;
+    }));
+  },
+  flush: () => Promise.all([...pend])
 };
 async function initStore() {
-  // old data in localStorage (the previous storage), keyed with the same prefix
-  const old = {};
-  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(P) === 0) old[k] = localStorage.getItem(k); } } catch (e) {}
-  try { idb = await idbOpen(); } catch (e) { idb = null; }
-  if (!idb) { for (const k in old) mem.set(k.slice(P.length), old[k]); return; }
-  const have = await idbAll(idb);
-  for (const k in have) if (k.indexOf(P) === 0) mem.set(k.slice(P.length), have[k]);
-  // one-time move from localStorage; the old copy is removed only after it is read back from IndexedDB
-  const keys = Object.keys(old).filter(k => !mem.has(k.slice(P.length)));
-  if (keys.length) {
-    await new Promise(res => {
-      const tx = idb.transaction('kv', 'readwrite'), os = tx.objectStore('kv');
-      keys.forEach(k => os.put(old[k], k));
-      tx.oncomplete = () => res(true); tx.onerror = tx.onabort = () => res(false);
-    }).then(async ok => {
-      if (!ok) { keys.forEach(k => mem.set(k.slice(P.length), old[k])); return; }
-      const back = await idbAll(idb);
-      keys.forEach(k => { mem.set(k.slice(P.length), old[k]); if (back[k] === old[k]) { try { localStorage.removeItem(k); } catch (e) {} } });
-    });
+  // what the previous version of the hub left in localStorage (same key prefix)
+  const old = {}; let marked = false;
+  try {
+    marked = localStorage.getItem(MARK) === '1';
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(P) === 0) old[k] = localStorage.getItem(k); }
+  } catch (e) {}
+  let db = null, err = null;
+  if (window.indexedDB) {
+    try { db = await idbOpen(); }
+    catch (e) { try { db = await idbOpen(); } catch (e2) { err = e2; } }
   }
+  if (!db) {
+    if (marked) throw err || new Error('storage is not available');   // the apps live in IndexedDB: never show an empty hub in its place
+    for (const k in old) mem.set(k.slice(P.length), old[k]);
+    return;
+  }
+  const have = await idbRead(db);
+  for (const k in have) mem.set(k.slice(P.length), have[k]);
+  idb = db; useIdb = true;
+  try { localStorage.setItem(MARK, '1'); } catch (e) {}
+  const own = k => Object.prototype.hasOwnProperty.call(have, k);
+  // one-time move from localStorage; an old copy is removed only after it has been read back from IndexedDB
+  const keys = Object.keys(old).filter(k => !own(k));
+  if (keys.length) {
+    const ok = await idbTx(os => keys.forEach(k => os.put(old[k], k)));
+    keys.forEach(k => mem.set(k.slice(P.length), old[k]));
+    if (ok) { const back = await idbRead(db); keys.forEach(k => { if (back[k] === old[k]) { try { localStorage.removeItem(k); } catch (e) {} } }); }
+  }
+  // an old copy of something IndexedDB already holds unchanged is no longer needed
+  Object.keys(old).forEach(k => { if (own(k) && have[k] === old[k]) { try { localStorage.removeItem(k); } catch (e) {} } });
 }
 const jget = (k, d) => { try { const v = JSON.parse(ls.get(k)); return v == null ? d : v; } catch (e) { return d; } };
-function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
+function toast(t) {
+  const o = $('toast'); if (o) o.remove();
+  const d = document.createElement('div'); d.id = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200);
+}
 
 let slots = [], home = {}, editMode = false;
 function loadAll() {
-  slots = []; for (let i = 0; i < N; i++) slots.push(jget('slot:' + i, null));
-  home = jget('home', {});
+  slots = [];
+  for (let i = 0; i < N; i++) {
+    let s = jget('slot:' + i, null);
+    if (!s || typeof s !== 'object' || typeof s.code !== 'string' || !s.code) s = null;      // a slot without an app counts as empty
+    else {
+      if (typeof s.name !== 'string' || !s.name) s.name = 'App ' + (i + 1);
+      if (typeof s.icon !== 'string' || !s.icon) { s.icon = defaultIcon(s.name, 192); s.manual = false; s.gen = true; }
+    }
+    slots.push(s);
+  }
+  home = jget('home', {}); if (!home || typeof home !== 'object') home = {};
 }
 
 /* ---------- icons ---------- */
@@ -388,7 +493,8 @@ function renderGrid() {
       if (suppress) { suppress = false; return; }
       if (!s || editMode) openEditor(i); else runSlot(i);
     });
-    b.addEventListener('pointerdown', () => { clearTimeout(pressTimer); if (s) pressTimer = setTimeout(() => { suppress = true; openEditor(i); }, 600); });
+    // press and hold = edit. "suppress" swallows the tap that ends the hold; every new touch clears it, so it can never get stuck.
+    b.addEventListener('pointerdown', () => { clearTimeout(pressTimer); suppress = false; if (s) pressTimer = setTimeout(() => { suppress = true; openEditor(i); }, 600); });
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearTimeout(pressTimer)));
     b.addEventListener('contextmenu', e => e.preventDefault());
     d.appendChild(b); d.appendChild(nm); g.appendChild(d);
@@ -397,23 +503,37 @@ function renderGrid() {
 $('editBtn').onclick = () => { editMode = !editMode; renderGrid(); };
 
 /* ---------- slot editor ---------- */
-let edIdx = -1, edIconData = null, edAuto = null;   // edIconData = icon you chose; edAuto = icon found inside the app's HTML
+// edIconData = icon you chose. edAuto = icon taken from the app's HTML. edAuto0 = the one this slot already had. Neither = a letter tile made from the name.
+let edIdx = -1, edIconData = null, edAuto = null, edAuto0 = null, edTok = 0, edBusy = false;
 function showIcon() { $('edIcon').src = edIconData || edAuto || defaultIcon($('edName').value || $('edName').placeholder || '?', 128); }
 function refreshAuto() {
   const code = $('edCode').value; if (!code) return;
   const nm = appName(code); if (nm) $('edName').placeholder = nm.slice(0, 24);
-  const url = embeddedIcon(code);
-  if (url) normalizeIcon(url, 192).then(n => { edAuto = n; showIcon(); }).catch(() => {});
-  else showIcon();
+  const url = embeddedIcon(code), tok = edTok;
+  if (url) normalizeIcon(url, 192).then(n => { if (tok === edTok) { edAuto = n; showIcon(); } }).catch(() => {});
+  else { edAuto = edAuto0; showIcon(); }
 }
+const ALLP = ['mic', 'cam', 'geo', 'clip', 'notif', 'motion'];
+function permsOf(s) { return !s ? [] : Array.isArray(s.perms) ? s.perms.filter(k => ALLP.indexOf(k) >= 0) : (s.trusted ? ALLP.slice() : []); }
+let edBgVal = null;
+function syncAll() { $('pAll').checked = [...document.querySelectorAll('.pk')].every(c => c.checked); }
+function edMsg(t) { $('msg').textContent = ''; if (t) { const sp = document.createElement('span'); sp.className = 'bad'; sp.textContent = t; $('msg').appendChild(sp); } }
 function openEditor(i) {
-  edIdx = i; const s = slots[i];
+  edIdx = i; edTok++; const s = slots[i];
   $('edTitle').textContent = s ? 'Edit ' + s.name : 'New app (slot ' + (i + 1) + ')';
   $('edName').value = s ? s.name : ''; $('edName').placeholder = 'Name under the icon';
-  edIconData = (s && s.manual !== false) ? s.icon : null; edAuto = (s && s.manual === false) ? s.icon : null;
-  $('edTrust').checked = !!(s && s.trusted); $('edCode').value = ''; $('edCode').placeholder = s ? 'Leave empty to keep the current app, or paste a new version' : 'Paste the full HTML here…';
-  $('edDel').hidden = !s; $('msg').textContent = ''; showIcon(); $('editor').hidden = false;
+  edIconData = (s && s.manual !== false) ? s.icon : null;
+  edAuto = edAuto0 = (s && s.manual === false && !s.gen) ? s.icon : null;      // a letter tile (gen) is redrawn from the name instead
+  edBgVal = (s && s.bg) || null; $('edBg').value = edBgVal || '#ffffff'; $('edBgNote').textContent = edBgVal ? '' : 'default';
+  const pp = permsOf(s); document.querySelectorAll('.pk').forEach(c => c.checked = pp.indexOf(c.dataset.k) >= 0); syncAll();
+  $('edNoZoom').checked = !!(s && s.noZoom); $('edEdge').checked = !!(s && s.edge); $('edOpts').open = !!(pp.length || edBgVal || (s && (s.noZoom || s.edge)));
+  $('edCode').value = ''; $('edCode').placeholder = s ? 'Leave empty to keep the current app, or paste a new version' : 'Paste the full HTML here…';
+  $('edDel').hidden = !s; edMsg(''); showIcon(); $('editor').hidden = false;
 }
+$('pAll').onchange = () => document.querySelectorAll('.pk').forEach(c => c.checked = $('pAll').checked);
+document.querySelectorAll('.pk').forEach(c => c.onchange = syncAll);
+$('edBg').oninput = $('edBg').onchange = () => { edBgVal = $('edBg').value; $('edBgNote').textContent = ''; };
+$('edBgReset').onclick = () => { edBgVal = null; $('edBg').value = '#ffffff'; $('edBgNote').textContent = 'default'; };
 $('edName').oninput = () => { if (!edIconData && !edAuto) showIcon(); };
 $('edCode').addEventListener('input', refreshAuto);
 $('edBuild').onclick = () => openBuilder(192, url => { edIconData = url; showIcon(); });
@@ -422,110 +542,246 @@ $('edClear').onclick = () => { edIconData = null; showIcon(); };
 $('edPick').onclick = () => $('edFile').click();
 $('edFile').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
-  $('edCode').value = await f.text(); refreshAuto(); $('msg').innerHTML = '<span class="ok">' + f.name.replace(/[<>&]/g, '') + ' loaded</span>'; e.target.value = '';
+  $('edCode').value = await f.text(); refreshAuto();
+  $('msg').textContent = ''; const sp = document.createElement('span'); sp.className = 'ok'; sp.textContent = f.name + ' loaded'; $('msg').appendChild(sp);
+  e.target.value = '';
 };
 $('edCancel').onclick = () => { $('editor').hidden = true; };
 $('edSave').onclick = async () => {
-  const old = slots[edIdx]; let code = $('edCode').value;
-  if (!code.trim()) { if (!old) { $('msg').innerHTML = '<span class="bad">Paste the app HTML first.</span>'; return; } code = old.code; }
-  else if (code.trim().length < 20 || code.indexOf('<') < 0) { $('msg').innerHTML = '<span class="bad">That does not look like HTML.</span>'; return; }
-  let name = $('edName').value.trim() || appName(code) || 'App ' + (edIdx + 1);
+  if (edBusy) return;
+  const idx = edIdx, old = slots[idx], pasted = $('edCode').value; let code = pasted;
+  if (!code.trim()) { if (!old) { edMsg('Paste the app HTML first.'); return; } code = old.code; }
+  else if (code.trim().length < 20 || code.indexOf('<') < 0) { edMsg('That does not look like HTML.'); return; }
+  let name = $('edName').value.trim() || appName(code) || 'App ' + (idx + 1);
   name = name.slice(0, 24);
-  if (!edIconData && $('edCode').value.trim()) {          // new HTML pasted: use the icon inside it, if it has one
-    const url = embeddedIcon(code);
-    if (url) { try { edAuto = await normalizeIcon(url, 192); } catch (e) {} }
-  }
-  const s = { name, icon: edIconData || edAuto || defaultIcon(name, 192), code, manual: !!edIconData, trusted: $('edTrust').checked };
-  if (!ls.set('slot:' + edIdx, JSON.stringify(s))) { $('msg').innerHTML = '<span class="bad">Could not save: storage is full or blocked.</span>'; return; }
-  slots[edIdx] = s; $('editor').hidden = true; renderGrid();
+  edBusy = true;
+  try {
+    if (!edIconData && pasted.trim()) {          // new HTML pasted: use the icon inside it, if it has one
+      const url = embeddedIcon(code);
+      if (url) { try { edAuto = await normalizeIcon(url, 192); } catch (e) {} }
+    }
+    const gen = !edIconData && !edAuto;          // no icon given: a letter tile made from the name
+    const s = { name, icon: edIconData || edAuto || defaultIcon(name, 192), code, manual: !!edIconData, gen,
+      perms: [...document.querySelectorAll('.pk')].filter(c => c.checked).map(c => c.dataset.k), bg: edBgVal, noZoom: $('edNoZoom').checked, edge: $('edEdge').checked };
+    if (!(await ls.set('slot:' + idx, JSON.stringify(s)))) { edMsg('Could not save: storage is full or blocked.'); return; }
+    slots[idx] = s; $('editor').hidden = true; renderGrid();
+  } finally { edBusy = false; }
 };
-$('edDel').onclick = () => {
-  if (!confirm('Delete "' + slots[edIdx].name + '" and its saved data?')) return;
-  ls.del('slot:' + edIdx); ls.del('state:' + edIdx); slots[edIdx] = null; $('editor').hidden = true; renderGrid();
+$('edDel').onclick = async () => {
+  if (edBusy) return;
+  const idx = edIdx;
+  if (!confirm('Delete "' + slots[idx].name + '" and its saved data?')) return;
+  edBusy = true;
+  try {
+    if (!(await ls.many({}, ['slot:' + idx, 'state:' + idx]))) { edMsg('Could not delete: storage is blocked.'); return; }
+    slots[idx] = null; $('editor').hidden = true; renderGrid();
+  } finally { edBusy = false; }
 };
 
 /* ---------- running an app ---------- */
-// Runs inside the app's frame (before its own scripts): gives it a saved localStorage and hands link clicks to the launcher.
-function shim(S) {
-  function post(m) { try { m.runner = 1; parent.postMessage(m, '*'); } catch (e) {} }
-  function mk(persist) {
-    var d = persist ? S : {};
+// This function runs inside the app's frame, before the app's own scripts. It gives the app a localStorage that the hub
+// saves, asks before a ticked permission is used (and refuses the others), and sends link taps to the right place.
+// Its text is pasted into the app's page, so it must not use anything from outside itself.
+function shim(S, O) {
+  var W = window, D = document, TO = /^https?:/.test(O.origin) ? O.origin : '*';
+  function post(m) { try { m.runner = 1; m.run = O.run; parent.postMessage(m, TO); } catch (e) {} }
+
+  // --- storage: stand-ins for localStorage (saved by the hub) and sessionStorage (kept until the app is closed)
+  function store(d, persist) {
+    var own = function (k) { return Object.prototype.hasOwnProperty.call(d, k); };
+    var save = function () { if (persist) post({ t: 'save', state: d }); };
     var api = {
-      getItem: function (k) { return Object.prototype.hasOwnProperty.call(d, k) ? d[k] : null; },
-      setItem: function (k, v) { d[k] = String(v); if (persist) post({ t: 'save', state: d }); },
-      removeItem: function (k) { delete d[k]; if (persist) post({ t: 'save', state: d }); },
-      clear: function () { for (var k in d) delete d[k]; if (persist) post({ t: 'save', state: d }); },
-      key: function (i) { return Object.keys(d)[i] || null; }
+      getItem: function (k) { k = String(k); return own(k) ? d[k] : null; },
+      setItem: function (k, v) { d[String(k)] = String(v); save(); },
+      removeItem: function (k) { k = String(k); if (own(k)) { delete d[k]; save(); } },
+      clear: function () { for (var k in d) delete d[k]; save(); },
+      key: function (i) { var ks = Object.keys(d); return i >= 0 && i < ks.length ? ks[i] : null; }
     };
-    Object.defineProperty(api, 'length', { get: function () { return Object.keys(d).length; } });
-    return api;
+    Object.defineProperty(api, 'length', { get: function () { return Object.keys(d).length; }, configurable: true });
+    if (typeof Proxy !== 'function') return api;
+    // also allow the short style some apps use: localStorage.name = value, localStorage.name, delete localStorage.name
+    return new Proxy(api, {
+      get: function (t, k) { return typeof k !== 'string' || k in t ? t[k] : (own(k) ? d[k] : undefined); },
+      set: function (t, k, v) { if (typeof k === 'string' && !(k in t)) { d[k] = String(v); save(); } return true; },
+      deleteProperty: function (t, k) { if (typeof k === 'string' && own(k)) { delete d[k]; save(); } return true; },
+      has: function (t, k) { return k in t || (typeof k === 'string' && own(k)); },
+      ownKeys: function () { return Object.keys(d); },
+      getOwnPropertyDescriptor: function (t, k) { return typeof k === 'string' && own(k) ? { value: d[k], writable: true, enumerable: true, configurable: true } : undefined; }
+    });
   }
-  try { Object.defineProperty(window, 'localStorage', { value: mk(true), configurable: true }); } catch (e) {}
-  try { Object.defineProperty(window, 'sessionStorage', { value: mk(false), configurable: true }); } catch (e) {}
-  document.addEventListener('click', function (e) {
+  try { Object.defineProperty(W, 'localStorage', { value: store(S, true), configurable: true }); } catch (e) {}
+  try { Object.defineProperty(W, 'sessionStorage', { value: store({}, false), configurable: true }); } catch (e) {}
+
+  // --- permissions: only what is ticked for this app may be used, and each one is confirmed once per run.
+  // The question is asked right here, before the real request, so the tap that started it still counts for the phone.
+  var NAMES = { mic: 'the microphone', cam: 'the camera', geo: 'your location', clip: 'the clipboard', notif: 'notifications', motion: 'motion and tilt sensors' };
+  var allowed = O.perms || [], yes = {}, noAt = {};
+  var ask = typeof W.confirm === 'function' ? W.confirm.bind(W) : function () { return false; };
+  function gate(kinds) {
+    for (var i = 0; i < kinds.length; i++) {
+      var k = kinds[i];
+      if (allowed.indexOf(k) < 0) return false;
+      if (yes[k]) continue;
+      if (noAt[k] && Date.now() - noAt[k] < 1500) return false;      // just refused: an app that retries at once is not asked again
+      var ok = false; try { ok = ask('Allow \u201c' + O.name + '\u201d to use ' + NAMES[k] + '?') === true; } catch (e) {}
+      if (!ok) { noAt[k] = Date.now(); return false; }
+      yes[k] = true;
+    }
+    return true;
+  }
+  function deny() {
+    var msg = 'Not allowed: this permission is not ticked for the app, or you chose Cancel.';
+    try { return new DOMException(msg, 'NotAllowedError'); } catch (e) { var x = new Error(msg); x.name = 'NotAllowedError'; return x; }
+  }
+  function media(c) { var k = []; if (c && c.audio) k.push('mic'); if (c && c.video) k.push('cam'); return k; }
+  try { var md = navigator.mediaDevices; if (md && md.getUserMedia) { var gum = md.getUserMedia.bind(md);
+    md.getUserMedia = function (c) { return gate(media(c)) ? gum(c) : Promise.reject(deny()); }; } } catch (e) {}
+  ['getUserMedia', 'webkitGetUserMedia', 'mozGetUserMedia'].forEach(function (n) { try { if (typeof navigator[n] !== 'function') return; var o = navigator[n].bind(navigator);
+    navigator[n] = function (c, ok, err) { if (gate(media(c))) o(c, ok, err); else if (typeof err === 'function') err(deny()); }; } catch (e) {} });
+  try { var geo = navigator.geolocation; if (geo) { var gcp = geo.getCurrentPosition.bind(geo), gwp = geo.watchPosition.bind(geo);
+    var refuse = function (err) { if (typeof err === 'function') setTimeout(function () { err({ code: 1, message: 'User denied Geolocation', PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 }); }, 0); };
+    geo.getCurrentPosition = function (ok, err, opt) { if (gate(['geo'])) gcp(ok, err, opt); else refuse(err); };
+    geo.watchPosition = function (ok, err, opt) { if (gate(['geo'])) return gwp(ok, err, opt); refuse(err); return 0; }; } } catch (e) {}
+  // copying needs no permission (as on any web page); reading the clipboard does
+  try { var clip = navigator.clipboard; if (clip) ['readText', 'read'].forEach(function (n) { if (typeof clip[n] !== 'function') return; var o = clip[n].bind(clip);
+    try { clip[n] = function () { return gate(['clip']) ? o.apply(null, arguments) : Promise.reject(deny()); }; } catch (e) {} }); } catch (e) {}
+  try { var N = W.Notification; if (N && typeof N.requestPermission === 'function') { var nrp = N.requestPermission.bind(N);
+    N.requestPermission = function (cb) { return new Promise(function (res) {
+      var done = false, fin = function (v) { if (done) return; done = true; if (typeof cb === 'function') cb(v); res(v); };
+      if (!gate(['notif'])) { fin('denied'); return; }
+      try { var r = nrp(fin); if (r && r.then) r.then(fin, function () { fin('denied'); }); } catch (e) { fin('denied'); }
+    }); }; } } catch (e) {}
+  ['DeviceMotionEvent', 'DeviceOrientationEvent'].forEach(function (n) { try { var E = W[n]; if (E && typeof E.requestPermission === 'function') { var orp = E.requestPermission.bind(E);
+    E.requestPermission = function () { return gate(['motion']) ? orp.apply(null, arguments) : Promise.resolve('denied'); }; } } catch (e) {} });
+
+  // --- zoom lock (a setting of the app in the hub)
+  if (O.noZoom) {
+    try { var st = D.createElement('style'); st.textContent = 'html{touch-action:pan-x pan-y!important}'; (D.head || D.documentElement).appendChild(st); } catch (e) {}
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { D.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false }); });
+    D.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  }
+
+  // --- links: a link followed inside the frame would replace the app with that page, so each kind is sent where it belongs
+  D.addEventListener('click', function (e) {
     if (e.defaultPrevented || e.button) return;
     var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
     if (!a) return;
     var h = a.getAttribute('href');
-    if (!h || /^(javascript|mailto|tel|blob|data):/i.test(h)) return;
-    e.preventDefault();
-    if (h.charAt(0) === '#') {
+    if (!h) return;
+    if (h.charAt(0) === '#') {                                       // a jump within the page
+      e.preventDefault();
       var id = h.slice(1); try { id = decodeURIComponent(id); } catch (x) {}
-      var t = id ? (document.getElementById(id) || document.getElementsByName(id)[0]) : document.documentElement;
+      var t = id ? (D.getElementById(id) || D.getElementsByName(id)[0]) : D.documentElement;
       if (t && t.scrollIntoView) t.scrollIntoView();
       return;
     }
-    post({ t: 'open', href: h });
+    var u; try { u = new URL(h, D.baseURI); } catch (x) { return; }
+    var p = u.protocol;
+    if (p === 'javascript:' || p === 'blob:' || p === 'data:' || p === 'about:' || p === 'tel:') return;     // the browser handles these in place
+    if ((p === 'http:' || p === 'https:') && u.origin === O.origin) { e.preventDefault(); post({ t: 'open', href: u.href }); return; }   // the hub's own site = back to the grid
+    // another website, or an app link such as mailto: or sms:, opens outside the app (a plain tap, so the phone allows it)
+    a.setAttribute('target', '_blank');
+    var rel = (a.getAttribute('rel') || '').split(/\s+/).filter(Boolean); if (rel.indexOf('noopener') < 0) { rel.push('noopener'); a.setAttribute('rel', rel.join(' ')); }
   }, false);
 }
-function inject(code, state) {
-  const json = JSON.stringify(state).replace(/</g, '\\u003c');
-  const tag = '<script>(' + shim.toString() + ')(' + json + ');<\/script>';
-  let m;
-  if ((m = code.match(/<head[^>]*>/i))) return code.slice(0, m.index + m[0].length) + tag + code.slice(m.index + m[0].length);
-  if ((m = code.match(/^\s*<!doctype[^>]*>\s*(<html[^>]*>)?/i))) return code.slice(0, m[0].length) + tag + code.slice(m[0].length);
-  if ((m = code.match(/<html[^>]*>/i))) return code.slice(0, m.index + m[0].length) + tag + code.slice(m.index + m[0].length);
-  return tag + code;
+// Where the helper goes: before everything else in the page, but after the doctype, which has to stay first.
+function injectAt(code) {
+  const OPEN = '<!' + '--', CLOSE = '--' + '>';
+  let i = 0;
+  for (;;) {
+    while (i < code.length && /\s/.test(code.charAt(i))) i++;
+    if (!code.startsWith(OPEN, i)) break;
+    const j = code.indexOf(CLOSE, i + 4); if (j < 0) break;
+    i = j + 3;
+  }
+  const m = /^<!doctype[^>]*>/i.exec(code.slice(i, i + 1000));
+  return m ? i + m[0].length : 0;
 }
-const frame = $('frame');
-let curSlot = -1, curState = {}, pending = null, timer = 0;
+function inject(code, state, opts) {
+  if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
+  const js = o => JSON.stringify(o).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+  const tag = '<script>(' + shim.toString() + ')(' + js(state) + ',' + js(opts) + ');<\/script>';
+  const at = injectAt(code);
+  return code.slice(0, at) + tag + code.slice(at);
+}
+
+const SANDBOX = 'allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads';
+const VIEWPORT = 'width=device-width,initial-scale=1,viewport-fit=cover';
+// What the browser itself enforces for the frame: the ticked permissions are switched on, the others are switched off.
+function allowList(pp) {
+  const f = (k, names) => names.map(n => pp.indexOf(k) >= 0 ? n : n + " 'none'");
+  return ['fullscreen', 'autoplay', 'web-share', 'clipboard-write']
+    .concat(f('mic', ['microphone']), f('cam', ['camera']), f('geo', ['geolocation']), f('clip', ['clipboard-read']), f('motion', ['accelerometer', 'gyroscope', 'magnetometer']))
+    .join('; ');
+}
+let frame = null, curSlot = -1, curRun = '', curState = {}, pending = null, timer = 0, lastRun = null, zoomLocked = false;
 function flush() {
   clearTimeout(timer);
   if (pending === null || curSlot < 0) { pending = null; return; }
-  const ok = ls.set('state:' + curSlot, JSON.stringify(pending)); pending = null;
-  if (!ok) toast('Could not save: storage is full or blocked');
+  const st = pending; pending = null;
+  ls.set('state:' + curSlot, JSON.stringify(st)).then(ok => { if (!ok) saveFailed(); });
 }
 addEventListener('pagehide', flush);
 document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+function setChrome(color) {      // colour of the top strip and the browser's bar while an app runs; null = the hub's own
+  const tc = document.querySelector('meta[name=theme-color]'); if (tc) tc.content = color || '#0025b8';
+  document.body.style.backgroundColor = color || '';
+}
 function runSlot(i) {
-  curSlot = i; curState = jget('state:' + i, {}); if (typeof curState !== 'object' || !curState) curState = {};
-  const SB = 'allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads';
-  frame.setAttribute('sandbox', slots[i].trusted ? SB + ' allow-same-origin' : SB);
-  frame.srcdoc = inject(slots[i].code, curState);
+  const sl = slots[i]; if (!sl) return;
+  if (frame) closeApp();
+  const pp = permsOf(sl), strip = sl.bg || '#000';
+  curSlot = i; curRun = Date.now().toString(36) + Math.random().toString(36).slice(2);
+  curState = jget('state:' + i, {}); if (typeof curState !== 'object' || !curState || Array.isArray(curState)) curState = {};
+  // A new frame for every run: nothing is left over from the app before, and the phone's back history stays clean.
+  const f = document.createElement('iframe'); f.id = 'frame'; f.title = sl.name;
+  f.setAttribute('sandbox', pp.length ? SANDBOX + ' allow-same-origin' : SANDBOX);     // the phone grants a permission only to an app that shares the hub's address
+  f.setAttribute('allow', allowList(pp));
+  f.style.background = sl.bg || '#fff';
+  f.srcdoc = inject(sl.code, curState, { run: curRun, origin: location.origin, name: sl.name, perms: pp, noZoom: !!sl.noZoom });
+  $('run').style.background = strip; $('run').classList.toggle('edge', !!sl.edge);
+  document.body.classList.add('running'); setChrome(strip);
+  zoomLocked = !!sl.noZoom;
+  document.querySelector('meta[name=viewport]').content = VIEWPORT + (zoomLocked ? ',maximum-scale=1,user-scalable=no' : '');
+  $('run').insertBefore(f, $('backBtn')); frame = f;
   $('home').hidden = true; $('run').hidden = false;
   try { history.pushState({ launcherRun: i }, ''); } catch (e) {}
 }
+['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => { if (zoomLocked) e.preventDefault(); }, { passive: false }));
 function closeApp() {
-  flush(); curSlot = -1; frame.removeAttribute('srcdoc'); frame.src = 'about:blank';
+  if (!frame) return;
+  const f = frame; frame = null;
+  flush();                                                                         // store what the app has saved so far
+  lastRun = { id: curRun, slot: curSlot, ref: slots[curSlot], at: Date.now() };    // a save the app makes while it closes still belongs to it
+  curSlot = -1; curRun = ''; zoomLocked = false;
+  document.body.classList.remove('running'); setChrome(null);
+  document.querySelector('meta[name=viewport]').content = VIEWPORT;
   $('run').hidden = true; $('home').hidden = false;
+  // Send the frame to an empty page before removing it: leaving a page is what lets an app run its own
+  // "save when closing" code (just removing the frame does not). "replace" keeps the phone's back history clean.
+  f.removeAttribute('id'); f.style.display = 'none';
+  try { f.contentWindow.location.replace('about:blank'); } catch (e) {}
+  setTimeout(() => f.remove(), 1500);
 }
 let ignorePop = false;
 $('backBtn').onclick = () => {
-  if ($('run').hidden) return;
-  closeApp();   // show the grid right away, then quietly drop the history step added when the app opened
+  if (!frame) return;
+  closeApp();   // show the grid right away, then quietly drop the history step that was added when the app opened
   if (history.state && history.state.launcherRun !== undefined) { ignorePop = true; history.back(); }
 };
-addEventListener('popstate', () => { if (ignorePop) { ignorePop = false; return; } if (!$('run').hidden) closeApp(); });
+addEventListener('popstate', () => { if (ignorePop) { ignorePop = false; return; } closeApp(); });
 addEventListener('message', e => {
-  if (e.source !== frame.contentWindow) return;
-  const d = e.data; if (!d || !d.runner) return;
+  const d = e.data; if (!d || d.runner !== 1 || typeof d.run !== 'string') return;
+  const live = frame && d.run === curRun && e.source === frame.contentWindow;
   if (d.t === 'save' && d.state && typeof d.state === 'object') {
-    curState = d.state; pending = d.state; clearTimeout(timer); timer = setTimeout(flush, 400);
-  } else if (d.t === 'open' && typeof d.href === 'string') {
-    let u; try { u = new URL(d.href, location.href); } catch (err) { return; }
-    if (!/^https?:$/.test(u.protocol)) return;
-    if (u.origin === location.origin) $('backBtn').click();       // a link back to "home" returns to the grid
-    else window.open(u.href, '_blank', 'noopener');
+    if (live) {
+      curState = d.state; pending = d.state; clearTimeout(timer);
+      if (document.hidden) flush(); else timer = setTimeout(flush, 400);           // going into the background: store it now, not later
+    } else if (lastRun && d.run === lastRun.id && Date.now() - lastRun.at < 10000 && slots[lastRun.slot] === lastRun.ref) {
+      ls.set('state:' + lastRun.slot, JSON.stringify(d.state)).then(ok => { if (!ok) saveFailed(); });   // the app saved while it was closing
+    }
+  } else if (d.t === 'open' && live) {
+    $('backBtn').click();                                                          // a link to the hub's own site returns to the grid
   }
 });
 
@@ -545,57 +801,93 @@ function hShow() { $('hIcon').src = hDraft.icon || DEFAULT_ICON; }
 $('setBtn').onclick = () => {
   hDraft = { name: home.name || '', icon: home.icon || null };
   $('hName').value = hDraft.name; hShow();
-  const used = (() => { let n = 0; mem.forEach((v, k) => { n += k.length + String(v).length; }); return n; })();
-  $('info').textContent = 'Folder: ' + FOLDER + ' · ' + slots.filter(Boolean).length + ' of ' + N + ' slots used · ' + (used >= 1048576 ? (used / 1048576).toFixed(1) + ' MB' : (used / 1024).toFixed(0) + ' KB') + ' saved (' + (idb ? 'large storage' : 'small 5 MB storage') + ')';
+  let used = 0; mem.forEach((v, k) => { used += k.length + String(v).length; });
+  $('info').textContent = 'Version ' + BUILD + ' · Folder: ' + FOLDER + ' · ' + slots.filter(Boolean).length + ' of ' + N + ' slots used · '
+    + (used >= 1048576 ? (used / 1048576).toFixed(1) + ' MB' : (used / 1024).toFixed(0) + ' KB') + ' saved (' + (useIdb ? 'large storage' : 'small 5 MB storage') + ')';
   $('smsg').textContent = ''; $('settings').hidden = false;
 };
 $('hBuild').onclick = () => openBuilder(512, url => { hDraft.icon = url; hShow(); });
 $('hUpBtn').onclick = () => pickImage(512, url => { hDraft.icon = url; hShow(); });
 $('hReset').onclick = () => { hDraft.icon = null; hShow(); };
 $('hClose').onclick = () => { $('settings').hidden = true; };
-$('hSave').onclick = () => {
+function sMsg(t, cls) { $('smsg').textContent = ''; if (t) { const sp = document.createElement('span'); sp.className = cls || 'bad'; sp.textContent = t; $('smsg').appendChild(sp); } }
+$('hSave').onclick = async () => {
   hDraft.name = $('hName').value.trim().slice(0, 24);
   const h = {}; if (hDraft.name) h.name = hDraft.name; if (hDraft.icon) h.icon = hDraft.icon;
-  if (!ls.set('home', JSON.stringify(h))) { $('smsg').innerHTML = '<span class="bad">Could not save: storage is full.</span>'; return; }
+  if (!(await ls.set('home', JSON.stringify(h)))) { sMsg('Could not save: storage is full or blocked.'); return; }
   home = h; applyHome(); $('settings').hidden = true;
-  toast('Saved. Remove and re-add the shortcut on your phone to see a new icon.');
+  toast('Saved. To see it on your phone, save a backup, then remove and re-add the shortcut.');
 };
 
 /* ---------- backup / restore ---------- */
-$('bkBtn').onclick = () => {
+$('bkBtn').onclick = async () => {
   flush();
-  const states = {}; for (let i = 0; i < N; i++) { const s = jget('state:' + i, null); if (s) states[i] = s; }
+  const states = {}; for (let i = 0; i < N; i++) { const st = jget('state:' + i, null); if (st && slots[i]) states[i] = st; }
   const data = { launcher: 1, folder: FOLDER, savedAt: new Date().toISOString(), home, slots, states };
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
-  a.download = FOLDER + '-backup-' + new Date().toISOString().slice(0, 10) + '.json';
-  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  const name = FOLDER + '-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  // In a home-screen app on an iPhone the share sheet ("Save to Files") is the dependable way to hand over a file.
+  if (navigator.standalone && navigator.share && navigator.canShare) {
+    try {
+      const file = new File([blob], name, { type: 'application/json' });
+      if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); sMsg('Backup handed over. Choose "Save to Files" to keep it.', 'ok'); return; }
+    } catch (e) { if (e && e.name === 'AbortError') { sMsg('Backup cancelled.'); return; } }      // any other problem: fall through to a download
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.style.display = 'none';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href); }, 60000);          // the phone needs the link for a while to finish the download
+  sMsg('Backup file: ' + name, 'ok');
 };
 $('rsBtn').onclick = () => $('rsFile').click();
 $('rsFile').onchange = async e => {
-  const f = e.target.files[0]; if (!f) return;
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
-    const d = JSON.parse(await f.text());
-    if (!d || d.launcher !== 1 || !Array.isArray(d.slots)) throw new Error('Not a launcher backup');
+    let d; try { d = JSON.parse(await f.text()); } catch (x) { d = null; }
+    if (!d || d.launcher !== 1 || !Array.isArray(d.slots)) throw new Error('this is not a backup file from the hub.');
     if (!confirm('Replace everything here with the backup from ' + (d.savedAt || 'unknown date') + '?')) return;
-    let ok = ls.set('home', JSON.stringify(d.home || {}));
+    const sets = { home: JSON.stringify(d.home && typeof d.home === 'object' ? d.home : {}) }, dels = [];
     for (let i = 0; i < N; i++) {
-      const s = d.slots[i];
-      if (s && s.code) ok = ls.set('slot:' + i, JSON.stringify(s)) && ok; else ls.del('slot:' + i);
-      if (d.states && d.states[i]) ok = ls.set('state:' + i, JSON.stringify(d.states[i])) && ok; else ls.del('state:' + i);
+      const sl = d.slots[i], st = d.states && d.states[i], good = sl && typeof sl === 'object' && typeof sl.code === 'string' && sl.code;
+      if (good) sets['slot:' + i] = JSON.stringify(sl); else dels.push('slot:' + i);
+      if (good && st && typeof st === 'object') sets['state:' + i] = JSON.stringify(st); else dels.push('state:' + i);
     }
-    if (!ok) throw new Error('Could not save everything (storage full)');
-    ls.flush().then(() => location.reload());
+    // one step: either the whole backup is stored or nothing is changed
+    if (!(await ls.many(sets, dels))) throw new Error('it could not be stored (storage is full or blocked). Nothing was changed.');
+    location.reload();
   } catch (err) { alert('Restore failed: ' + err.message); }
-  e.target.value = '';
 };
 
 /* ---------- start ---------- */
+// Other apps in this folder have service workers that can hand out an older saved copy of this page. When that
+// happened, load the current one once this page's own worker has taken over (at most once per session, only while idle).
+function freshen() {
+  const sw = navigator.serviceWorker, mine = c => !!c && /\/sw\.js$/.test(new URL(c.scriptURL).pathname);
+  if (!sw.controller || mine(sw.controller)) return;
+  sw.addEventListener('controllerchange', () => {
+    if (!mine(sw.controller)) return;
+    let tried = true; try { tried = sessionStorage.getItem('tinyhub-upd') === '1'; } catch (e) {}
+    if (tried) return;
+    fetch(location.pathname, { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(t => {
+      const m = /const BUILD = '([^']+)'/.exec(t);
+      if (!m || !(m[1] > BUILD) || frame || !$('editor').hidden || !$('settings').hidden || !$('builder').hidden) return;
+      try { sessionStorage.setItem('tinyhub-upd', '1'); } catch (e) { return; }
+      location.reload();
+    }).catch(() => {});
+  });
+}
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  try { freshen(); } catch (e) {}
   navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
 }
-initStore().catch(() => {}).then(() => { loadAll(); applyHome(); renderGrid(); });
+applyHome();
+$('bootRetry').onclick = () => location.reload();
+initStore().then(() => { loadAll(); applyHome(); renderGrid(); }, err => {
+  // Do not show an empty grid here: saving into it could overwrite apps that are still stored.
+  document.body.classList.add('down');
+  $('bootMsg').textContent = 'Could not open your saved apps (' + ((err && err.message) || 'storage error') + '). Nothing was changed. Close the hub completely and open it again, or tap Try again.';
+  $('boot').hidden = false;
+});
 </script>
 </body>
 </html>
