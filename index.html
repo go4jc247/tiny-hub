@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" id="fav">
 <link rel="apple-touch-icon" id="ati">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tiny Hub" id="amt">
 <title>Tiny Hub</title>
@@ -19,7 +20,9 @@
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-user-select:none;user-select:none}
 input,textarea{-webkit-user-select:text;user-select:text}
-#home{max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
+#home{max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+body.down .hb{display:none}
+#boot{margin-top:24px;text-align:center}
 header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
 h1{font-size:22px;margin:0}
 .hb{display:flex;gap:8px}
@@ -37,9 +40,15 @@ h1{font-size:22px;margin:0}
 .edit .slot.full .tile{outline:3px dashed var(--ac);outline-offset:2px}
 .edit .slot.full::after{content:"✎";position:absolute;top:-6px;right:-2px;background:var(--ac);color:#fff;border-radius:50%;width:22px;height:22px;font-size:12px;display:grid;place-items:center}
 footer{text-align:center;margin-top:28px}
-#run{position:fixed;inset:0;background:#fff}
-#frame{width:100%;height:100%;border:0;background:#fff}
-#backBtn{position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom));min-width:38px;height:38px;border-radius:19px;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:15px;padding:0 12px;opacity:.4;z-index:5;cursor:pointer}
+/* While an app runs, #run fills the screen. Its padding keeps the app clear of the clock and the notch, and its
+   background colour is what shows in that strip (the phone also reads the status bar colour from it). */
+#run{position:fixed;inset:0;background:#000;box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+#run.edge{padding:0}
+/* The same strip for the hub's own pages: blue, so the white clock stays readable above the grid and the sheets. */
+#sbfill{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:#0025b8;z-index:30}
+body.running #sbfill{display:none}
+#frame{display:block;width:100%;height:100%;border:0;background:#fff}
+#backBtn{position:fixed;left:calc(8px + env(safe-area-inset-left));bottom:calc(8px + env(safe-area-inset-bottom));min-width:38px;height:38px;border-radius:19px;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:15px;padding:0 12px;opacity:.4;z-index:5;cursor:pointer}
 #backBtn:hover,#backBtn:focus,#backBtn:active{opacity:.95}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;z-index:20}
 .sheet .in{background:var(--card);width:100%;max-width:560px;max-height:92dvh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px;display:grid;gap:10px;padding-bottom:calc(16px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
@@ -72,6 +81,7 @@ legend{font-weight:700;padding:0 6px}
 </style>
 </head>
 <body>
+<div id="sbfill"></div>
 
 <div id="home">
   <header>
@@ -82,12 +92,14 @@ legend{font-weight:700;padding:0 6px}
     </div>
   </header>
   <div id="grid"></div>
+  <div id="boot" hidden>
+    <p id="bootMsg" class="bad"></p>
+    <button class="btn" id="bootRetry">Try again</button>
+  </div>
 </div>
 
+<!-- The app's frame is created here each time an app is opened (see runSlot). -->
 <div id="run" hidden>
-  <iframe id="frame" title="App"
-    allow="microphone; camera; geolocation; clipboard-read; clipboard-write; web-share; fullscreen; autoplay"
-    sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"></iframe>
   <button id="backBtn" aria-label="Back to home screen">← Home</button>
 </div>
 
@@ -107,7 +119,23 @@ legend{font-weight:700;padding:0 6px}
     <label for="edCode">App (paste the full HTML)</label>
     <textarea id="edCode" spellcheck="false" placeholder="Paste the full HTML here…"></textarea>
     <div class="row"><button class="btn s" id="edPick">Choose HTML file…</button></div>
-    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="edTrust" style="width:auto;margin-top:3px"><span>Trusted app: allow microphone / camera<br><small style="opacity:.7">Only for apps you wrote or trust. It can then also read this hub's saved data.</small></span></label>
+    <details id="edOpts" style="margin-top:10px"><summary style="font-weight:600;cursor:pointer">App settings: permissions, colour, zoom</summary>
+      <div style="display:grid;gap:8px;margin-top:10px">
+        <b>Permissions this app may ask for</b>
+        <small style="opacity:.7">Anything not ticked is refused. A ticked permission still asks you to confirm the first time the app uses it, each time you open the app. Tick these only for apps you trust: an app with any permission can also read this hub's saved data.</small>
+        <label><input type="checkbox" id="pAll"> Allow everything</label>
+        <label><input type="checkbox" class="pk" data-k="mic"> Microphone</label>
+        <label><input type="checkbox" class="pk" data-k="cam"> Camera</label>
+        <label><input type="checkbox" class="pk" data-k="geo"> Location</label>
+        <label><input type="checkbox" class="pk" data-k="clip"> Clipboard: read what you copied (paste)</label>
+        <label><input type="checkbox" class="pk" data-k="notif"> Notifications</label>
+        <label><input type="checkbox" class="pk" data-k="motion"> Motion and tilt sensors</label>
+        <b style="margin-top:6px">Background colour</b>
+        <small style="opacity:.7">Fills the strip at the top (clock and battery) and shows behind the app. The clock is white, so darker colours work best. Default: black strip.</small>
+        <div class="row" style="align-items:center"><input type="color" id="edBg" value="#ffffff" style="width:60px;height:38px;padding:0"><button class="btn s" id="edBgReset" type="button">Default</button><span id="edBgNote" style="opacity:.7;font-size:13px"></span></div>
+        <label style="margin-top:6px"><input type="checkbox" id="edEdge"> Let the app fill the top strip too<br><small style="opacity:.7">The clock then sits on top of the app. Best for full-screen games.</small></label>
+        <label style="margin-top:6px"><input type="checkbox" id="edNoZoom"> Block pinch-zoom and double-tap zoom</label>
+      </div></details>
     <input type="file" id="edFile" accept=".html,.htm,.txt,text/html,text/plain" hidden>
     <div id="msg"></div>
     <div class="row">
@@ -199,66 +227,134 @@ function drawHubIcon(S) {
   return c.toDataURL('image/png');
 }
 const DEFAULT_ICON = drawHubIcon(512);
-/* Storage: IndexedDB (gigabytes) with an in-memory copy so the rest of the code stays synchronous.
-   Falls back to localStorage (about 5 MB) if IndexedDB is not available, e.g. some private modes. */
+const BUILD = '2026-11-15';            // version of this file, shown in Settings. Raise it whenever the file changes.
+
+/* Storage: IndexedDB (room for large apps) with a copy in memory, so reading stays instant.
+   Falls back to localStorage (about 5 MB) only where IndexedDB does not exist, e.g. some private modes. */
+const MARK = 'tinyhub-idb:' + FOLDER;  // set once IndexedDB has been used here, so a later hiccup never falls back to an empty hub
 const mem = new Map();
-let idb = null, saveFail = false; const pend = new Set();
+let idb = null, useIdb = false, lastFailToast = 0;
+const pend = new Set();
+const track = p => { pend.add(p); p.then(() => pend.delete(p)); return p; };
+const idbRange = () => IDBKeyRange.bound(P, P + '￿');     // only this folder's keys
 function idbOpen() {
   return new Promise((res, rej) => {
-    let r; try { r = indexedDB.open('tinyhub', 1); } catch (e) { rej(e); return; }
-    r.onupgradeneeded = () => r.result.createObjectStore('kv');
-    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error('blocked'));
+    let r, done = false;
+    const t = setTimeout(() => { if (!done) { done = true; rej(new Error('storage did not answer')); } }, 8000);
+    try { r = indexedDB.open('tinyhub', 1); } catch (e) { done = true; clearTimeout(t); rej(e); return; }
+    r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains('kv')) r.result.createObjectStore('kv'); };
+    r.onsuccess = () => {
+      const db = r.result;
+      if (done) { db.close(); return; }
+      done = true; clearTimeout(t);
+      db.onversionchange = () => db.close();     // another page wants to change the database: do not block it
+      res(db);
+    };
+    r.onerror = () => { if (!done) { done = true; clearTimeout(t); rej(r.error || new Error('storage error')); } };
   });
 }
-function idbAll(db) {
+function idbRead(db) {                 // everything this folder has saved, as { fullKey: value }
   return new Promise((res, rej) => {
-    const out = {}, tx = db.transaction('kv', 'readonly'), c = tx.objectStore('kv').openCursor();
+    const out = {};
+    let tx; try { tx = db.transaction('kv', 'readonly'); } catch (e) { rej(e); return; }
+    const c = tx.objectStore('kv').openCursor(idbRange());
     c.onsuccess = () => { const cur = c.result; if (cur) { out[cur.key] = cur.value; cur.continue(); } else res(out); };
-    c.onerror = () => rej(c.error);
+    c.onerror = () => rej(c.error || new Error('read failed'));
+    tx.onabort = () => rej(tx.error || new Error('read failed'));
   });
 }
-function idbWrite(k, v) {        // v === null deletes
-  if (!idb) return;
-  try {
-    const tx = idb.transaction('kv', 'readwrite'), os = tx.objectStore('kv');
-    if (v === null) os.delete(P + k); else os.put(v, P + k);
-    const done = new Promise(res => { tx.oncomplete = () => { pend.delete(done); res(); }; tx.onerror = tx.onabort = () => { pend.delete(done); res(); if (!saveFail) { saveFail = true; toast('Could not save: storage is full or blocked.'); } }; });
-    pend.add(done);
-  } catch (e) { if (!saveFail) { saveFail = true; toast('Could not save: storage is full or blocked.'); } }
+// Runs fn(store) in one read-write step. Resolves true once it is safely stored, false if it failed.
+function idbTx(fn) {
+  return new Promise(res => {
+    let tx;
+    try { tx = idb.transaction('kv', 'readwrite'); fn(tx.objectStore('kv')); }
+    catch (e) { try { if (tx) tx.abort(); } catch (x) {} res(false); return; }
+    tx.oncomplete = () => res(true);
+    tx.onabort = () => res(false);
+    try { if (tx.commit) tx.commit(); } catch (e) {}     // do not wait for the next idle moment: matters when the hub is being closed
+  });
 }
+async function idbStore(fn) {
+  if (await idbTx(fn)) return true;
+  // The phone can drop the database connection while the hub sits in the background: open it again and try once more.
+  try {
+    const db = await idbOpen(); try { if (idb) idb.close(); } catch (e) {} idb = db;
+    const n = await new Promise(res => {
+      try { const q = db.transaction('kv', 'readonly').objectStore('kv').count(idbRange()); q.onsuccess = () => res(q.result); q.onerror = () => res(-1); }
+      catch (e) { res(-1); }
+    });
+    if (n === 0 && mem.size) return await idbTx(os => { mem.forEach((v, k) => os.put(v, P + k)); fn(os); });   // it came back empty: put everything back
+    return await idbTx(fn);
+  } catch (e) { return false; }
+}
+function saveFailed() { if (Date.now() - lastFailToast > 4000) { lastFailToast = Date.now(); toast('Could not save: storage is full or blocked.'); } }
 const ls = {
   get: k => mem.has(k) ? mem.get(k) : null,
-  set: (k, v) => {
-    if (idb) { mem.set(k, v); idbWrite(k, v); return true; }
-    try { localStorage.setItem(P + k, v); mem.set(k, v); return true; } catch (e) { return false; }
+  // The copy in memory changes at once. The promise says whether it was really stored; if it was not, the change is undone.
+  set(k, v) {
+    if (!useIdb) { try { localStorage.setItem(P + k, v); mem.set(k, v); return Promise.resolve(true); } catch (e) { return Promise.resolve(false); } }
+    const had = mem.has(k), old = mem.get(k);
+    mem.set(k, v);
+    return track(idbStore(os => os.put(v, P + k)).then(ok => {
+      if (!ok && mem.get(k) === v) { if (had) mem.set(k, old); else mem.delete(k); }
+      return ok;
+    }));
   },
-  flush: () => Promise.all([...pend]),
-  del: k => { mem.delete(k); if (idb) idbWrite(k, null); else { try { localStorage.removeItem(P + k); } catch (e) {} } }
+  // Several changes in one step: either all of them are stored, or none.
+  many(sets, dels) {
+    const apply = () => { dels.forEach(k => mem.delete(k)); for (const k in sets) mem.set(k, sets[k]); };
+    if (!useIdb) {
+      try { dels.forEach(k => localStorage.removeItem(P + k)); for (const k in sets) localStorage.setItem(P + k, sets[k]); }
+      catch (e) {
+        dels.concat(Object.keys(sets)).forEach(k => { try { if (mem.has(k)) localStorage.setItem(P + k, mem.get(k)); else localStorage.removeItem(P + k); } catch (x) {} });
+        return Promise.resolve(false);
+      }
+      apply(); return Promise.resolve(true);
+    }
+    return track(idbStore(os => { dels.forEach(k => os.delete(P + k)); for (const k in sets) os.put(sets[k], P + k); }).then(ok => {
+      if (ok) { apply(); dels.forEach(k => { try { localStorage.removeItem(P + k); } catch (e) {} }); }   // also clears a copy left by the old storage
+      return ok;
+    }));
+  },
+  flush: () => Promise.all([...pend])
 };
 async function initStore() {
-  // old data in localStorage (the previous storage), keyed with the same prefix
-  const old = {};
-  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(P) === 0) old[k] = localStorage.getItem(k); } } catch (e) {}
-  try { idb = await idbOpen(); } catch (e) { idb = null; }
-  if (!idb) { for (const k in old) mem.set(k.slice(P.length), old[k]); return; }
-  const have = await idbAll(idb);
-  for (const k in have) if (k.indexOf(P) === 0) mem.set(k.slice(P.length), have[k]);
-  // one-time move from localStorage; the old copy is removed only after it is read back from IndexedDB
-  const keys = Object.keys(old).filter(k => !mem.has(k.slice(P.length)));
-  if (keys.length) {
-    await new Promise(res => {
-      const tx = idb.transaction('kv', 'readwrite'), os = tx.objectStore('kv');
-      keys.forEach(k => os.put(old[k], k));
-      tx.oncomplete = () => res(true); tx.onerror = tx.onabort = () => res(false);
-    }).then(async ok => {
-      if (!ok) { keys.forEach(k => mem.set(k.slice(P.length), old[k])); return; }
-      const back = await idbAll(idb);
-      keys.forEach(k => { mem.set(k.slice(P.length), old[k]); if (back[k] === old[k]) { try { localStorage.removeItem(k); } catch (e) {} } });
-    });
+  // what the previous version of the hub left in localStorage (same key prefix)
+  const old = {}; let marked = false;
+  try {
+    marked = localStorage.getItem(MARK) === '1';
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(P) === 0) old[k] = localStorage.getItem(k); }
+  } catch (e) {}
+  let db = null, err = null;
+  if (window.indexedDB) {
+    try { db = await idbOpen(); }
+    catch (e) { try { db = await idbOpen(); } catch (e2) { err = e2; } }
   }
+  if (!db) {
+    if (marked) throw err || new Error('storage is not available');   // the apps live in IndexedDB: never show an empty hub in its place
+    for (const k in old) mem.set(k.slice(P.length), old[k]);
+    return;
+  }
+  const have = await idbRead(db);
+  for (const k in have) mem.set(k.slice(P.length), have[k]);
+  idb = db; useIdb = true;
+  try { localStorage.setItem(MARK, '1'); } catch (e) {}
+  const own = k => Object.prototype.hasOwnProperty.call(have, k);
+  // one-time move from localStorage; an old copy is removed only after it has been read back from IndexedDB
+  const keys = Object.keys(old).filter(k => !own(k));
+  if (keys.length) {
+    const ok = await idbTx(os => keys.forEach(k => os.put(old[k], k)));
+    keys.forEach(k => mem.set(k.slice(P.length), old[k]));
+    if (ok) { const back = await idbRead(db); keys.forEach(k => { if (back[k] === old[k]) { try { localStorage.removeItem(k); } catch (e) {} } }); }
+  }
+  // an old copy of something IndexedDB already holds unchanged is no longer needed
+  Object.keys(old).forEach(k => { if (own(k) && have[k] === old[k]) { try { localStorage.removeItem(k); } catch (e) {} } });
 }
 const jget = (k, d) => { try { const v = JSON.parse(ls.get(k)); return v == null ? d : v; } catch (e) { return d; } };
-function toast(t) { const d = document.createElement('div'); d.id = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
+function toast(t) {
+  const o = $('toast'); if (o) o.remove();
+  const d = document.createElement('div'); d.id = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200);
+}
 
 let slots = [], home = {}, editMode = false;
 function loadAll() {
@@ -388,7 +484,8 @@ function renderGrid() {
       if (suppress) { suppress = false; return; }
       if (!s || editMode) openEditor(i); else runSlot(i);
     });
-    b.addEventListener('pointerdown', () => { clearTimeout(pressTimer); if (s) pressTimer = setTimeout(() => { suppress = true; openEditor(i); }, 600); });
+    // press and hold = edit. "suppress" swallows the tap that ends the hold; every new touch clears it, so it can never get stuck.
+    b.addEventListener('pointerdown', () => { clearTimeout(pressTimer); suppress = false; if (s) pressTimer = setTimeout(() => { suppress = true; openEditor(i); }, 600); });
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearTimeout(pressTimer)));
     b.addEventListener('contextmenu', e => e.preventDefault());
     d.appendChild(b); d.appendChild(nm); g.appendChild(d);
@@ -406,14 +503,26 @@ function refreshAuto() {
   if (url) normalizeIcon(url, 192).then(n => { edAuto = n; showIcon(); }).catch(() => {});
   else showIcon();
 }
+const ALLP = ['mic', 'cam', 'geo', 'clip', 'notif', 'motion'];
+const PNAME = { mic: 'the microphone', cam: 'the camera', geo: 'your location', clip: 'the clipboard', notif: 'notifications', motion: 'motion and tilt sensors' };
+function permsOf(s) { return !s ? [] : Array.isArray(s.perms) ? s.perms : (s.trusted ? ALLP.slice() : []); }
+let edBgVal = null;
+function syncAll() { $('pAll').checked = [...document.querySelectorAll('.pk')].every(c => c.checked); }
 function openEditor(i) {
   edIdx = i; const s = slots[i];
   $('edTitle').textContent = s ? 'Edit ' + s.name : 'New app (slot ' + (i + 1) + ')';
   $('edName').value = s ? s.name : ''; $('edName').placeholder = 'Name under the icon';
   edIconData = (s && s.manual !== false) ? s.icon : null; edAuto = (s && s.manual === false) ? s.icon : null;
-  $('edTrust').checked = !!(s && s.trusted); $('edCode').value = ''; $('edCode').placeholder = s ? 'Leave empty to keep the current app, or paste a new version' : 'Paste the full HTML here…';
+  edBgVal = (s && s.bg) || null; $('edBg').value = edBgVal || '#ffffff'; $('edBgNote').textContent = edBgVal ? '' : 'default';
+  const pp = permsOf(s); document.querySelectorAll('.pk').forEach(c => c.checked = pp.indexOf(c.dataset.k) >= 0); syncAll();
+  $('edNoZoom').checked = !!(s && s.noZoom); $('edEdge').checked = !!(s && s.edge); $('edOpts').open = !!(pp.length || edBgVal || (s && (s.noZoom || s.edge)));
+  $('edCode').value = ''; $('edCode').placeholder = s ? 'Leave empty to keep the current app, or paste a new version' : 'Paste the full HTML here…';
   $('edDel').hidden = !s; $('msg').textContent = ''; showIcon(); $('editor').hidden = false;
 }
+$('pAll').onchange = () => document.querySelectorAll('.pk').forEach(c => c.checked = $('pAll').checked);
+document.querySelectorAll('.pk').forEach(c => c.onchange = syncAll);
+$('edBg').oninput = () => { edBgVal = $('edBg').value; $('edBgNote').textContent = ''; };
+$('edBgReset').onclick = () => { edBgVal = null; $('edBg').value = '#ffffff'; $('edBgNote').textContent = 'default'; };
 $('edName').oninput = () => { if (!edIconData && !edAuto) showIcon(); };
 $('edCode').addEventListener('input', refreshAuto);
 $('edBuild').onclick = () => openBuilder(192, url => { edIconData = url; showIcon(); });
@@ -435,7 +544,7 @@ $('edSave').onclick = async () => {
     const url = embeddedIcon(code);
     if (url) { try { edAuto = await normalizeIcon(url, 192); } catch (e) {} }
   }
-  const s = { name, icon: edIconData || edAuto || defaultIcon(name, 192), code, manual: !!edIconData, trusted: $('edTrust').checked };
+  const s = { name, icon: edIconData || edAuto || defaultIcon(name, 192), code, manual: !!edIconData, perms: [...document.querySelectorAll('.pk')].filter(c => c.checked).map(c => c.dataset.k), bg: edBgVal, noZoom: $('edNoZoom').checked, edge: $('edEdge').checked };
   if (!ls.set('slot:' + edIdx, JSON.stringify(s))) { $('msg').innerHTML = '<span class="bad">Could not save: storage is full or blocked.</span>'; return; }
   slots[edIdx] = s; $('editor').hidden = true; renderGrid();
 };
@@ -446,7 +555,7 @@ $('edDel').onclick = () => {
 
 /* ---------- running an app ---------- */
 // Runs inside the app's frame (before its own scripts): gives it a saved localStorage and hands link clicks to the launcher.
-function shim(S) {
+function shim(S, O) {
   function post(m) { try { m.runner = 1; parent.postMessage(m, '*'); } catch (e) {} }
   function mk(persist) {
     var d = persist ? S : {};
@@ -462,6 +571,29 @@ function shim(S) {
   }
   try { Object.defineProperty(window, 'localStorage', { value: mk(true), configurable: true }); } catch (e) {}
   try { Object.defineProperty(window, 'sessionStorage', { value: mk(false), configurable: true }); } catch (e) {}
+  var pend = {}, seq = 0;
+  addEventListener('message', function (e) { var d = e.data; if (d && d.runner && d.t === 'permr' && pend[d.id]) { var f = pend[d.id]; delete pend[d.id]; f(!!d.ok); } });
+  function ask(kinds) { return new Promise(function (res) { var id = ++seq; pend[id] = res; post({ t: 'perm', id: id, kinds: kinds }); }); }
+  function deny() { try { return new DOMException('Not allowed in the Tiny Hub app settings, or you chose Cancel.', 'NotAllowedError'); } catch (e) { return new Error('NotAllowedError'); } }
+  try { var md = navigator.mediaDevices; if (md && md.getUserMedia) { var og = md.getUserMedia.bind(md);
+    md.getUserMedia = function (c) { c = c || {}; var k = []; if (c.audio) k.push('mic'); if (c.video) k.push('cam');
+      return ask(k).then(function (ok) { if (!ok) throw deny(); return og(c); }); }; } } catch (e) {}
+  try { var g = navigator.geolocation; if (g) { var wm = {}, wn = 0, ocl = g.clearWatch.bind(g);
+    var gp = g.getCurrentPosition.bind(g), gw = g.watchPosition.bind(g);
+    g.getCurrentPosition = function (ok, err, opt) { ask(['geo']).then(function (a) { if (a) gp(ok, err, opt); else if (err) err({ code: 1, message: 'User denied Geolocation', PERMISSION_DENIED: 1 }); }); };
+    g.watchPosition = function (ok, err, opt) { var fid = ++wn; ask(['geo']).then(function (a) { if (a) wm[fid] = gw(ok, err, opt); else if (err) err({ code: 1, message: 'User denied Geolocation', PERMISSION_DENIED: 1 }); }); return fid; };
+    g.clearWatch = function (id) { ocl(wm[id] !== undefined ? wm[id] : id); }; } } catch (e) {}
+  try { var c = navigator.clipboard; if (c) ['writeText', 'readText', 'read', 'write'].forEach(function (n) { if (!c[n]) return; var o = c[n].bind(c);
+    try { c[n] = function () { var a = arguments; return ask(['clip']).then(function (ok) { if (!ok) throw deny(); return o.apply(null, a); }); }; } catch (e) {} }); } catch (e) {}
+  try { if (window.Notification && Notification.requestPermission) { var onr = Notification.requestPermission.bind(Notification);
+    Notification.requestPermission = function (cb) { return ask(['notif']).then(function (ok) { return (ok ? onr() : Promise.resolve('denied')).then(function (v) { if (cb) cb(v); return v; }); }); }; } } catch (e) {}
+  ['DeviceMotionEvent', 'DeviceOrientationEvent'].forEach(function (n) { try { var E = window[n]; if (E && typeof E.requestPermission === 'function') { var orp = E.requestPermission.bind(E);
+    E.requestPermission = function () { return ask(['motion']).then(function (ok) { return ok ? orp() : 'denied'; }); }; } } catch (e) {} });
+  if (O && O.noZoom) {
+    try { document.documentElement.style.touchAction = 'pan-x pan-y'; } catch (e) {}
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false }); });
+    document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  }
   document.addEventListener('click', function (e) {
     if (e.defaultPrevented || e.button) return;
     var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
@@ -478,9 +610,9 @@ function shim(S) {
     post({ t: 'open', href: h });
   }, false);
 }
-function inject(code, state) {
+function inject(code, state, opts) {
   const json = JSON.stringify(state).replace(/</g, '\\u003c');
-  const tag = '<script>(' + shim.toString() + ')(' + json + ');<\/script>';
+  const tag = '<script>(' + shim.toString() + ')(' + json + ',' + JSON.stringify(opts || {}) + ');<\/script>';
   let m;
   if ((m = code.match(/<head[^>]*>/i))) return code.slice(0, m.index + m[0].length) + tag + code.slice(m.index + m[0].length);
   if ((m = code.match(/^\s*<!doctype[^>]*>\s*(<html[^>]*>)?/i))) return code.slice(0, m[0].length) + tag + code.slice(m[0].length);
@@ -499,13 +631,23 @@ addEventListener('pagehide', flush);
 document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
 function runSlot(i) {
   curSlot = i; curState = jget('state:' + i, {}); if (typeof curState !== 'object' || !curState) curState = {};
-  const SB = 'allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads';
-  frame.setAttribute('sandbox', slots[i].trusted ? SB + ' allow-same-origin' : SB);
-  frame.srcdoc = inject(slots[i].code, curState);
+  const sl = slots[i], pp = permsOf(sl), SB = 'allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads';
+  granted = {};
+  frame.setAttribute('sandbox', pp.length ? SB + ' allow-same-origin' : SB);
+  $('run').style.background = sl.bg || '#000'; frame.style.background = sl.bg || '#fff'; $('run').classList.toggle('edge', !!sl.edge); document.body.classList.add('running');
+  const tc = document.querySelector('meta[name=theme-color]'); if (tc) { if (!tc.dataset.orig) tc.dataset.orig = tc.content; tc.content = sl.bg || tc.dataset.orig; }
+  zoomLocked = !!sl.noZoom;
+  const vp = document.querySelector('meta[name=viewport]'); vp.content = 'width=device-width,initial-scale=1,viewport-fit=cover' + (zoomLocked ? ',maximum-scale=1,user-scalable=no' : '');
+  frame.srcdoc = inject(sl.code, curState, { noZoom: zoomLocked });
   $('home').hidden = true; $('run').hidden = false;
   try { history.pushState({ launcherRun: i }, ''); } catch (e) {}
 }
+let granted = {}, zoomLocked = false;
+['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => { if (zoomLocked && !$('run').hidden) e.preventDefault(); }, { passive: false }));
 function closeApp() {
+  document.body.classList.remove('running');
+  zoomLocked = false; const vp = document.querySelector('meta[name=viewport]'); if (vp) vp.content = 'width=device-width,initial-scale=1,viewport-fit=cover';
+  const tc = document.querySelector('meta[name=theme-color]'); if (tc && tc.dataset.orig) tc.content = tc.dataset.orig;
   flush(); curSlot = -1; frame.removeAttribute('srcdoc'); frame.src = 'about:blank';
   $('run').hidden = true; $('home').hidden = false;
 }
@@ -521,6 +663,14 @@ addEventListener('message', e => {
   const d = e.data; if (!d || !d.runner) return;
   if (d.t === 'save' && d.state && typeof d.state === 'object') {
     curState = d.state; pending = d.state; clearTimeout(timer); timer = setTimeout(flush, 400);
+  } else if (d.t === 'perm') {
+    const sl = slots[curSlot], allowed = permsOf(sl); let ok = true;
+    for (const k of (Array.isArray(d.kinds) ? d.kinds : [])) {
+      if (!PNAME[k] || allowed.indexOf(k) < 0) { ok = false; break; }
+      if (granted[k] === undefined) granted[k] = confirm('Allow \u201c' + sl.name + '\u201d to use ' + PNAME[k] + '?');
+      if (!granted[k]) { ok = false; break; }
+    }
+    try { frame.contentWindow.postMessage({ runner: 1, t: 'permr', id: d.id, ok }, '*'); } catch (err) {}
   } else if (d.t === 'open' && typeof d.href === 'string') {
     let u; try { u = new URL(d.href, location.href); } catch (err) { return; }
     if (!/^https?:$/.test(u.protocol)) return;
