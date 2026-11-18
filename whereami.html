@@ -16,7 +16,7 @@ body{margin:0;font:15px/1.4 -apple-system,system-ui,sans-serif;background:#f5f6f
 @media (prefers-color-scheme:dark){body{background:#111;color:#eee}.card{background:#1d1d20!important}td{border-color:#333!important}}
 h1{font-size:22px;margin:4px 0 10px}
 #guess{font-size:20px;font-weight:700;padding:14px;border-radius:14px;background:#0025b8;color:#fff;margin-bottom:12px}
-#guess small{display:block;font-weight:400;font-size:13px;opacity:.85;margin-top:4px}
+#guess small{display:block;font-weight:400;font-size:14px;opacity:.9;margin-top:6px}#guess .lbl{display:block;font-size:13px;font-weight:600;opacity:.8;text-transform:uppercase;letter-spacing:.06em}#guess .big{display:block;font-size:28px;margin-top:4px}#guess .why{font-size:13px;opacity:.75}
 .card{background:#fff;border-radius:14px;padding:6px 12px;margin-bottom:12px}
 .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#888;margin:10px 0 4px}
 table{width:100%;border-collapse:collapse}
@@ -58,6 +58,29 @@ function browserName(){
   if(/Chrome\//.test(ua))return 'Chrome';
   return 'Unknown';
 }
+function where(navSA,standaloneMQ,fullMQ){
+  var inFrame=false;try{inFrame=window.top!==window}catch(e){inFrame=true}
+  var why=[];
+  if(navSA===true||standaloneMQ===true||fullMQ===true){
+    if(navSA===true)why.push('the phone says it was opened from a Home Screen icon');
+    if(standaloneMQ===true)why.push('display mode is standalone');
+    if('Notification' in window)why.push('notifications exist, which only Home Screen apps get on iPhone');
+    return ['📱','A Home Screen app','Added from Safari, DuckDuckGo or Shortcuts. It can\'t tell which.',why]}
+  if(/Claude\//.test(ua)){why.push('the app name "Claude" is in the user agent');if(location.href==='about:srcdoc')why.push('the page was dropped into a preview frame');
+    return ['💬','The Claude app','A file preview inside Claude.',why]}
+  if(location.protocol==='file:'){why.push('the address is a file saved on this phone ('+location.pathname.split('/').slice(-3).join('/')+')');
+    if(!/Safari\//.test(ua))why.push('there\'s no browser name in the user agent');
+    return ['📄','A file opened in another app','Probably an HTML viewer or editor.',why]}
+  if(inFrame||location.href==='about:srcdoc'){why.push('it\'s running inside a frame on another page');
+    return ['🧩','Inside another page','For example an app slot in Tiny Hub, or a preview.',why]}
+  if(/Ddg\/|DuckDuckGo/i.test(ua)){why.push('"Ddg" is in the user agent');return ['🦆','DuckDuckGo','',why]}
+  if(/CriOS/.test(ua)){why.push('"CriOS" is in the user agent');return ['🌐','Chrome','',why]}
+  if(/FxiOS/.test(ua)){why.push('"FxiOS" is in the user agent');return ['🦊','Firefox','',why]}
+  if(/EdgiOS/.test(ua)){why.push('"EdgiOS" is in the user agent');return ['🌐','Edge','',why]}
+  if(/FBAN|FBAV|Instagram|LinkedInApp|Snapchat|Line\//.test(ua)){why.push('a social app\'s name is in the user agent');return ['📲','A social app\'s built-in browser','',why]}
+  if(/Version\/[\d.]+.*Safari\//.test(ua)&&/^https?:/.test(location.protocol)){why.push('the user agent is plain Safari with nothing added');why.push('display mode is browser');return ['🧭','Safari','',why]}
+  if(/Chrome\//.test(ua)){why.push('"Chrome" is in the user agent');return ['🌐','Chrome','',why]}
+  why.push('the user agent has no browser name');return ['📲','Another app\'s built-in viewer','',why]}
 function px(v){return Math.round(parseFloat(v)||0)}
 function yn(v){return v===true?'<span class="yes">yes</span>':v===false?'<span class="no">no</span>':String(v)}
 function render(){
@@ -67,9 +90,8 @@ function render(){
   var standaloneMQ=mq('(display-mode: standalone)'), fullMQ=mq('(display-mode: fullscreen)'), minMQ=mq('(display-mode: minimal-ui)'), browserMQ=mq('(display-mode: browser)');
   var navSA=('standalone' in navigator)?navigator.standalone:'not available';
   var homeScreen=(navSA===true)||standaloneMQ===true||fullMQ===true;
-  var g=document.getElementById('guess');
-  g.innerHTML=homeScreen?'📱 Opened from the Home Screen<small>This is running as its own app, not in a browser tab.</small>'
-                        :'🌐 Opened in a browser tab<small>Browser: '+browserName()+'</small>';
+  var g=document.getElementById('guess'),w=where(navSA,standaloneMQ,fullMQ);
+  g.innerHTML='<span class="lbl">You opened this in</span><span class="big">'+w[0]+' '+w[1]+'</span>'+(w[2]?'<small>'+w[2]+'</small>':'')+'<small class="why">Because '+w[3].join('; ')+'.</small>';
   var vv=window.visualViewport;
   var groups=[
    ['The big clues',[
@@ -117,7 +139,7 @@ function render(){
      ['Time zone',Intl.DateTimeFormat().resolvedOptions().timeZone]]]];
   var h='';groups.forEach(function(gr){h+='<div class="card"><h2>'+gr[0]+'</h2><table>';gr[1].forEach(function(r){h+='<tr><td>'+r[0]+'</td><td><b>'+r[1]+'</b></td></tr>'});h+='</table></div>'});
   document.getElementById('out').innerHTML=h;
-  window.__text=g.innerText.replace(/\n/g,' – ')+'\n\n'+groups.map(function(gr){return gr[0].toUpperCase()+'\n'+gr[1].map(function(r){return r[0]+': '+String(r[1]).replace(/<[^>]+>/g,'')}).join('\n')}).join('\n\n');
+  window.__text='You opened this in: '+w[1]+(w[2]?' ('+w[2]+')':'')+'\nBecause '+w[3].join('; ')+'\n\n'+groups.map(function(gr){return gr[0].toUpperCase()+'\n'+gr[1].map(function(r){return r[0]+': '+String(r[1]).replace(/<[^>]+>/g,'')}).join('\n')}).join('\n\n');
 }
 try{visits.push(new Date().toLocaleString());localStorage.setItem(KEY,JSON.stringify(visits.slice(-20)))}catch(e){}
 if(navigator.storage&&navigator.storage.estimate)navigator.storage.estimate().then(function(e){window.__est=Math.round(e.usage/1024)+' KB used of about '+Math.round(e.quota/1048576)+' MB';render()});
