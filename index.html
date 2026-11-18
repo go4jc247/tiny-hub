@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0025b8">
+<meta name="theme-color" content="#f5f6f8">
 <link rel="manifest" id="mf">
 <link rel="icon" type="image/png" id="fav">
 <link rel="apple-touch-icon" id="ati">
@@ -44,8 +44,8 @@ footer{text-align:center;margin-top:28px}
    background colour is what shows in that strip (the phone also reads the status bar colour from it). */
 #run{position:fixed;inset:0;background:#000;box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 #run.edge{padding:0}
-/* The same strip for the hub's own pages: blue, so the white clock stays readable above the grid and the sheets. */
-#sbfill{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:#0025b8;z-index:30}
+/* The same strip for the hub's own pages: the page's own background colour, so nothing scrolls up behind the clock. */
+#sbfill{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--bg);z-index:30}
 body.running #sbfill{display:none}
 #frame{display:block;width:100%;height:100%;border:0;background:#fff}
 #backBtn{position:fixed;left:calc(8px + env(safe-area-inset-left));bottom:calc(8px + env(safe-area-inset-bottom));min-width:38px;height:38px;border-radius:19px;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:15px;padding:0 12px;opacity:.4;z-index:5;cursor:pointer}
@@ -77,6 +77,37 @@ legend{font-weight:700;padding:0 6px}
 #bCtl input[type=range]{width:100%}
 #bCtl input[type=color]{width:100%;height:42px;border:0;background:none;padding:0}
 .two{display:flex;gap:8px}.two>div{flex:1}
+
+/* ---------- the guide: browser welcome, Home Screen setup, first-launch welcome, walkthrough ---------- */
+.gfull{position:fixed;inset:0;z-index:18;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  padding:calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));overflow-y:auto}
+.gfull .gi{width:96px;height:96px;border-radius:22%;box-shadow:0 6px 20px #0003;margin-bottom:18px;object-fit:cover;background:var(--empty)}
+.gfull h2{font-size:24px;margin:0 0 10px}
+.gfull p{margin:0 0 18px;color:var(--mut);max-width:380px}
+.gfull .gb{display:grid;gap:10px;width:100%;max-width:340px}
+.gfull .gb .btn{padding:13px 16px;font-size:17px}
+.gfull .gchk{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:16px;font-size:14px;color:var(--mut)}
+.gpick{position:relative;text-align:left;padding-left:44px!important}.gpick::before{content:'';position:absolute;left:14px;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;border:2px solid var(--bd)}
+.gpick.on{background:var(--card);color:var(--tx);font-weight:600;border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}.gpick.on::before{border-color:var(--ac);background:var(--ac);box-shadow:inset 0 0 0 3px var(--card)}
+.gdots{display:flex;gap:6px;justify-content:center;margin-bottom:18px}.gdots i{width:8px;height:8px;border-radius:50%;background:var(--bd)}.gdots i.on{background:var(--ac)}
+#gName{text-align:center;font-size:20px;max-width:340px}
+#gShare{position:fixed;left:0;right:0;bottom:0;z-index:18;background:var(--card);border-radius:18px 18px 0 0;box-shadow:0 -6px 30px #0004;
+  padding:18px 20px calc(58px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
+#gShare h2{font-size:18px;margin:0 0 10px}
+#gShare ol{margin:0 0 12px;padding-left:22px;display:grid;gap:8px}
+#gShare .note{font-size:13px;color:var(--mut);margin-bottom:12px}
+#gArrow{position:fixed;left:50%;bottom:calc(6px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:19;font-size:34px;color:var(--ac);animation:gbob 1s ease-in-out infinite;pointer-events:none}
+@keyframes gbob{50%{transform:translate(-50%,8px)}}
+.gglow{position:relative;z-index:1;animation:gpulse 1.2s ease-in-out infinite!important}
+@keyframes gpulse{0%,100%{box-shadow:0 0 0 3px #ff9800,0 0 0 0 rgba(255,152,0,.55)}50%{box-shadow:0 0 0 3px #ff9800,0 0 0 12px rgba(255,152,0,0)}}
+#gTip{position:fixed;z-index:40;left:12px;right:12px;max-width:420px;margin:0 auto;background:#0b1240;color:#fff;border-radius:14px;padding:12px 14px;font-size:16px;box-shadow:0 8px 28px #0006}
+#gTip .gx{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:10px}
+#gTip button{font:inherit;font-size:14px;background:none;border:0;color:#b9c3ff;padding:4px 0;cursor:pointer}
+#gTip b.k{display:inline-block;background:#fff;color:#0b1240;border-radius:6px;padding:0 6px}
+#gFing{position:fixed;z-index:41;pointer-events:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35));animation:gtap 1.6s ease-in-out infinite}
+#gFing .bu{opacity:0;animation:gbu 1.6s ease-in-out infinite}
+@keyframes gtap{0%{opacity:0;transform:translate(26px,30px)}20%{opacity:1;transform:translate(26px,30px)}45%{transform:none}55%{transform:scale(.9)}70%{opacity:1;transform:none}90%,100%{opacity:0;transform:none}}
+@keyframes gbu{0%,48%{opacity:0}52%,62%{opacity:1}66%,100%{opacity:0}}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:70px;background:#000d;color:#fff;padding:8px 14px;border-radius:10px;font-size:14px;z-index:50}
 </style>
 </head>
@@ -131,7 +162,7 @@ legend{font-weight:700;padding:0 6px}
         <label><input type="checkbox" class="pk" data-k="notif"> Notifications</label>
         <label><input type="checkbox" class="pk" data-k="motion"> Motion and tilt sensors</label>
         <b style="margin-top:6px">Background colour</b>
-        <small style="opacity:.7">Fills the strip at the top (clock and battery) and shows behind the app. The clock is white, so darker colours work best. Default: black strip.</small>
+        <small style="opacity:.7">Fills the strip at the top (clock and battery) and shows behind the app. The phone turns the clock black or white to suit it. Default: black strip.</small>
         <div class="row" style="align-items:center"><input type="color" id="edBg" value="#ffffff" style="width:60px;height:38px;padding:0"><button class="btn s" id="edBgReset" type="button">Default</button><span id="edBgNote" style="opacity:.7;font-size:13px"></span></div>
         <label style="margin-top:6px"><input type="checkbox" id="edEdge"> Let the app fill the top strip too<br><small style="opacity:.7">The clock then sits on top of the app. Best for full-screen games.</small></label>
         <label style="margin-top:6px"><input type="checkbox" id="edNoZoom"> Block pinch-zoom and double-tap zoom</label>
@@ -150,8 +181,9 @@ legend{font-weight:700;padding:0 6px}
 <div class="sheet" id="settings" hidden>
   <div class="in">
     <h2>Home screen</h2>
-    <label for="hName">Name (shown under the icon on your phone)</label>
+    <label for="hName">Name (at the top of the hub and under the icon on your phone)</label>
     <input type="text" id="hName" maxlength="24" placeholder="Tiny Hub">
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="hShowTitle"> Show this name at the top of the hub</label>
     <label>Icon for your phone's home screen</label>
     <div class="pv"><img id="hIcon" alt=""><div class="row">
       <button class="btn s" id="hBuild">Build icon</button>
@@ -167,6 +199,11 @@ legend{font-weight:700;padding:0 6px}
       <button class="btn" id="rsBtn">Restore backup</button>
     </div>
     <input type="file" id="rsFile" accept="application/json,.json" hidden>
+    <h2 style="margin-top:8px">Help</h2>
+    <div class="row">
+      <button class="btn" id="gAgain">Home Screen setup</button>
+      <button class="btn" id="gTourAgain">How to add an app</button>
+    </div>
     <div class="mut" id="info"></div>
     <div id="smsg"></div>
   </div>
@@ -204,6 +241,52 @@ legend{font-weight:700;padding:0 6px}
   </div>
 </div>
 
+<!-- the guide (see "the guide" in the script) -->
+<div class="gfull" id="gWelcome" hidden>
+  <img class="gi" id="gWIcon" alt="">
+  <h2>This works best on your Home Screen</h2>
+  <p>It looks like you have this open in a web browser. Added to your Home Screen, it opens full screen like an app, and works offline.</p>
+  <div class="gb"><button class="btn p" id="gYes">Add it to my Home Screen</button><button class="btn" id="gNo">Not now</button></div>
+  <label class="gchk"><input type="checkbox" id="gNever"> Don't show this again</label>
+</div>
+<div class="gfull" id="gSetup" hidden>
+  <div class="gdots"><i></i><i></i><i></i></div>
+  <img class="gi" id="gSIcon" alt="" style="margin-bottom:6px">
+  <div class="mut" style="margin-bottom:16px">Your icon</div>
+  <div id="gStep1">
+    <h2>Pick an icon</h2>
+    <p>This is the picture on your Home Screen.</p>
+    <div class="gb"><button class="btn gpick" id="gStd">Use the standard icon</button><button class="btn gpick" id="gBuild">Build my own</button><button class="btn gpick" id="gUp">Choose from Photos or Files</button>
+    <button class="btn p" id="gNext1" style="margin-top:8px">Next</button></div>
+  </div>
+  <div id="gStep2" hidden>
+    <h2>Name it</h2>
+    <p>This shows under the icon.</p>
+    <div class="gb"><input type="text" id="gName" maxlength="24" placeholder="Tiny Hub"><button class="btn p" id="gNext2" style="margin-top:8px">Save</button><button class="btn" id="gBack2">Back</button></div>
+  </div>
+  <button class="btn" id="gCancel" style="margin-top:18px;border:0;background:none;color:var(--mut)">Cancel</button>
+</div>
+<div id="gShare" hidden>
+  <div class="gdots"><i></i><i></i><i class="on"></i></div>
+  <h2>Now add it to your Home Screen</h2>
+  <ol>
+    <li>Tap the Share button <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-5px"><path d="M12 3v11"/><path d="M8 7l4-4 4 4"/><path d="M9 10H7a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-2"/></svg> in the browser's bar.</li>
+    <li>Scroll down and tap <b>Add to Home Screen</b> <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-5px"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M12 8.5v7M8.5 12h7"/></svg></li>
+    <li>Tap <b>Add</b>, then open it from its new icon.</li>
+  </ol>
+  <div class="note">Apps you add here in the browser stay in the browser. The Home Screen copy starts fresh, so add your apps there.</div>
+  <button class="btn" id="gShareDone" style="width:100%">Close</button>
+</div>
+<div id="gArrow" hidden>⬇</div>
+<div class="gfull" id="gHello" hidden>
+  <img class="gi" id="gHIcon" alt="">
+  <h2>You're all set!</h2>
+  <p>It's on your Home Screen. Want a quick walkthrough of adding your first app?</p>
+  <div class="gb"><button class="btn p" id="gTour">Show me</button><button class="btn" id="gSkip">Skip</button></div>
+</div>
+<div id="gTip" hidden><div id="gTipT"></div><div class="gx"><span id="gTipN" style="font-size:13px;opacity:.7"></span><button id="gTipEnd">End walkthrough</button></div></div>
+<div id="gFing" hidden><svg viewBox="-8 -10 72 74" width="48" height="50"><g class="bu" stroke="#111" stroke-width="3" stroke-linecap="round"><path d="M17 1l-5-5M29-1v-7M41 1l5-5"/></g><path d="M24 34V10a5 5 0 0 1 10 0v16a5 5 0 0 1 10 1v2a5 5 0 0 1 10 1v12c0 10-7 18-17 18h-4c-7 0-11-3-15-9l-8-13a4.5 4.5 0 0 1 7-5l7 7z" fill="#fff" stroke="#111" stroke-width="3" stroke-linejoin="round"/><path d="M34 26v8M44 28v6" stroke="#111" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+
 <script>
 const $ = id => document.getElementById(id);
 const N = 12;   // number of slots
@@ -227,7 +310,7 @@ function drawHubIcon(S) {
   return c.toDataURL('image/png');
 }
 const DEFAULT_ICON = drawHubIcon(512);
-const BUILD = '2026-11-15';            // version of this file, shown in Settings. Raise it whenever the file changes.
+const BUILD = '2026-11-18b';            // version of this file, shown in Settings. Raise it whenever the file changes.
 
 /* Storage: IndexedDB (room for large apps) with a copy in memory, so reading stays instant.
    Falls back to localStorage (about 5 MB) only where IndexedDB does not exist, e.g. some private modes. */
@@ -723,8 +806,9 @@ function flush() {
 }
 addEventListener('pagehide', flush);
 document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+function pageBg() { return getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f5f6f8'; }
 function setChrome(color) {      // colour of the top strip and the browser's bar while an app runs; null = the hub's own
-  const tc = document.querySelector('meta[name=theme-color]'); if (tc) tc.content = color || '#0025b8';
+  const tc = document.querySelector('meta[name=theme-color]'); if (tc) tc.content = color || getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f5f6f8';
   document.body.style.backgroundColor = color || '';
 }
 function runSlot(i) {
@@ -789,18 +873,18 @@ addEventListener('message', e => {
 let hDraft = {};
 function applyHome() {
   const name = (home.name || 'Tiny Hub'), icon = home.icon || DEFAULT_ICON;
-  document.title = name; $('amt').content = name; $('title').textContent = name;
+  document.title = name; $('amt').content = name; $('title').textContent = name; $('title').style.visibility = home.hideTitle ? 'hidden' : '';
   $('ati').href = icon; $('fav').href = icon;
   const base = location.origin + location.pathname.replace(/[^/]*$/, '');
   const mime = (icon.match(/^data:([^;]+)/) || [])[1] || 'image/png';
-  const mf = { name, short_name: name, start_url: base, scope: base, display: 'standalone', background_color: '#0025b8', theme_color: '#0025b8',
+  const mf = { name, short_name: name, start_url: base + (home.name ? '?n=' + encodeURIComponent(home.name) : ''), scope: base, display: 'standalone', background_color: pageBg(), theme_color: pageBg(),
     icons: [{ src: icon, sizes: '512x512', type: mime, purpose: 'any' }] };
   try { $('mf').href = URL.createObjectURL(new Blob([JSON.stringify(mf)], { type: 'application/manifest+json' })); } catch (e) {}
 }
 function hShow() { $('hIcon').src = hDraft.icon || DEFAULT_ICON; }
 $('setBtn').onclick = () => {
   hDraft = { name: home.name || '', icon: home.icon || null };
-  $('hName').value = hDraft.name; hShow();
+  $('hName').value = hDraft.name; $('hShowTitle').checked = !home.hideTitle; hShow();
   let used = 0; mem.forEach((v, k) => { used += k.length + String(v).length; });
   $('info').textContent = 'Version ' + BUILD + ' · Folder: ' + FOLDER + ' · ' + slots.filter(Boolean).length + ' of ' + N + ' slots used · '
     + (used >= 1048576 ? (used / 1048576).toFixed(1) + ' MB' : (used / 1024).toFixed(0) + ' KB') + ' saved (' + (useIdb ? 'large storage' : 'small 5 MB storage') + ')';
@@ -813,7 +897,7 @@ $('hClose').onclick = () => { $('settings').hidden = true; };
 function sMsg(t, cls) { $('smsg').textContent = ''; if (t) { const sp = document.createElement('span'); sp.className = cls || 'bad'; sp.textContent = t; $('smsg').appendChild(sp); } }
 $('hSave').onclick = async () => {
   hDraft.name = $('hName').value.trim().slice(0, 24);
-  const h = {}; if (hDraft.name) h.name = hDraft.name; if (hDraft.icon) h.icon = hDraft.icon;
+  const h = {}; if (hDraft.name) h.name = hDraft.name; if (hDraft.icon) h.icon = hDraft.icon; if (!$('hShowTitle').checked) h.hideTitle = true;
   if (!(await ls.set('home', JSON.stringify(h)))) { sMsg('Could not save: storage is full or blocked.'); return; }
   home = h; applyHome(); $('settings').hidden = true;
   toast('Saved. To see it on your phone, save a backup, then remove and re-add the shortcut.');
@@ -857,6 +941,102 @@ $('rsFile').onchange = async e => {
   } catch (err) { alert('Restore failed: ' + err.message); }
 };
 
+
+/* ---------- the guide ---------- */
+// In a browser: a welcome that suggests the Home Screen (the first 3 times, unless switched off), then a short setup:
+// icon, name, and how to add it. From the Home Screen: a welcome on the very first launch, and a walkthrough of
+// adding an app that points at the real buttons. Each Home Screen icon has its own storage, so "first launch" is per icon.
+let GD = {};
+const STANDALONE = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches;
+let IN_FRAME = false; try { IN_FRAME = window.top !== window; } catch (e) { IN_FRAME = true; }
+function gSave() { ls.set('guide', JSON.stringify(GD)); }
+function gIcons() { const ic = home.icon || DEFAULT_ICON; ['gWIcon', 'gHIcon'].forEach(id => $(id).src = ic); }
+function guideStart() {
+  GD = jget('guide', {}); if (!GD || typeof GD !== 'object') GD = {};
+  if (IN_FRAME) return;
+  if (STANDALONE) {
+    GD.homeOpens = (GD.homeOpens || 0) + 1;
+    const n = new URLSearchParams(location.search).get('n');          // the name chosen in the browser, passed along by the icon
+    if (n && !home.name) { home = Object.assign({}, home, { name: n.slice(0, 24) }); ls.set('home', JSON.stringify(home)); applyHome(); }
+    gSave();
+    if (GD.homeOpens === 1 && !slots.some(Boolean)) { gIcons(); $('gHello').hidden = false; }
+  } else {
+    GD.browserOpens = (GD.browserOpens || 0) + 1; gSave();
+    if (!GD.dontAsk && GD.browserOpens <= 3) { gIcons(); $('gNever').checked = false; $('gWelcome').hidden = false; }
+  }
+}
+$('gNo').onclick = () => { if ($('gNever').checked) { GD.dontAsk = true; gSave(); } $('gWelcome').hidden = true; };
+$('gYes').onclick = () => { if ($('gNever').checked) { GD.dontAsk = true; gSave(); } $('gWelcome').hidden = true; gSetupOpen(); };
+
+let gIcon = null;
+function gDots(n) { $('gSetup').querySelectorAll('.gdots i').forEach((d, i) => d.classList.toggle('on', i === n)); }
+let gWay = 'std';
+function gShowIcon() { $('gSIcon').src = gIcon || DEFAULT_ICON; if (!gIcon) gWay = 'std'; ['gStd', 'gBuild', 'gUp'].forEach(id => $(id).classList.toggle('on', id === { std: 'gStd', build: 'gBuild', up: 'gUp', mine: '' }[gWay])); }
+function gSetupOpen() { gIcon = home.icon || null; gWay = gIcon ? 'mine' : 'std'; gShowIcon(); $('gName').value = home.name || ''; $('gStep1').hidden = false; $('gStep2').hidden = true; gDots(0); $('gSetup').hidden = false; }
+$('gStd').onclick = () => { gIcon = null; gWay = 'std'; gShowIcon(); };
+$('gBuild').onclick = () => openBuilder(512, url => { gIcon = url; gWay = 'build'; gShowIcon(); });
+$('gUp').onclick = () => pickImage(512, url => { gIcon = url; gWay = 'up'; gShowIcon(); });
+$('gNext1').onclick = () => { $('gStep1').hidden = true; $('gStep2').hidden = false; gDots(1); };
+$('gBack2').onclick = () => { $('gStep2').hidden = true; $('gStep1').hidden = false; gDots(0); };
+$('gCancel').onclick = () => { $('gSetup').hidden = true; };
+$('gNext2').onclick = async () => {
+  const name = $('gName').value.trim().slice(0, 24);
+  const h = Object.assign({}, home); delete h.name; delete h.icon; if (name) h.name = name; if (gIcon) h.icon = gIcon;
+  if (!(await ls.set('home', JSON.stringify(h)))) { toast('Could not save: storage is full or blocked.'); return; }
+  home = h; applyHome();
+  try { history.replaceState(null, '', location.pathname + (name ? '?n=' + encodeURIComponent(name) : '')); } catch (e) {}   // so the icon opens with the name
+  $('gSetup').hidden = true; $('gShare').hidden = false; $('gArrow').hidden = false;
+};
+$('gShareDone').onclick = () => { $('gShare').hidden = true; $('gArrow').hidden = true; };
+$('gAgain').onclick = () => { $('settings').hidden = true; gSetupOpen(); };
+$('gSkip').onclick = () => { $('gHello').hidden = true; };
+$('gTour').onclick = () => { $('gHello').hidden = true; tourStart(); };
+$('gTourAgain').onclick = () => { $('settings').hidden = true; tourStart(); };
+
+// The walkthrough: a tip, a pulsing outline on the real button, and a finger that taps towards it. It moves on when you do the step.
+let T = null;
+function tourEl() { return T && T.steps[T.i] && T.steps[T.i].el(); }
+function tourShow() {
+  const st = T.steps[T.i]; document.querySelectorAll('.gglow').forEach(e => e.classList.remove('gglow'));
+  $('gTipT').innerHTML = st.text; $('gTipN').textContent = 'Step ' + (T.i + 1) + ' of ' + T.steps.length;
+  $('gTip').hidden = false; T.shown = null;
+}
+function tourPlace() {
+  if (!T) return;
+  const e = tourEl(), f = $('gFing'), tip = $('gTip');
+  if (e && e.offsetParent !== null) {
+    if (T.shown !== e) { document.querySelectorAll('.gglow').forEach(x => x.classList.remove('gglow')); e.classList.add('gglow'); T.shown = e; try { e.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) {} }
+    const r = e.getBoundingClientRect(); f.hidden = false;
+    f.style.left = (r.left + r.width / 2 - 25) + 'px'; f.style.top = (r.top + Math.min(r.height / 2, 40) - 10) + 'px';
+    const below = r.top + r.height / 2 < innerHeight / 2;           // tip on the other side of the screen from the target
+    tip.style.top = below ? Math.min(innerHeight - 150, r.bottom + 64) + 'px' : ''; tip.style.bottom = below ? '' : (innerHeight - r.top + 16) + 'px';
+  } else f.hidden = true;
+  const st = T.steps[T.i]; if (st.done()) { T.i++; if (T.i >= T.steps.length) return tourEnd(true); tourShow(); }
+  T.raf = requestAnimationFrame(tourPlace);
+}
+function tourStart() {
+  if (T) tourEnd(false);
+  let idx = slots.findIndex(s => !s); if (idx < 0) { toast('All 12 slots are full. Delete an app first.'); return; }
+  const tile = () => $('grid').children[idx] && $('grid').children[idx].querySelector('.tile');
+  T = { i: 0, steps: [
+    { text: 'Tap an empty <b class="k">+</b> slot to add an app.', el: tile, done: () => !$('editor').hidden },
+    { text: 'Paste the app\'s code into this box, or tap <b class="k">Choose HTML file…</b> to pick one from your Files.',
+      el: () => $('edCode').value.trim() ? null : $('edCode'), done: () => $('edCode').value.trim().length > 20 },
+    { text: 'Check the name, then tap <b class="k">Save</b>.', el: () => $('edSave'), done: () => $('editor').hidden },
+    { text: 'That\'s your new app. Tap it to open it. <b class="k">← Home</b> brings you back.', el: tile, done: () => !$('run').hidden }
+  ] };
+  tourShow(); T.raf = requestAnimationFrame(tourPlace);
+  // going back: if the editor is closed without saving, start again from the empty slot
+  T.watch = setInterval(() => { if (!T) return; if (T.i >= 1 && T.i <= 2 && $('editor').hidden && !slots[idx]) { T.i = 0; tourShow(); }
+    if (T.i === 3 && !slots[idx]) { T.i = 0; tourShow(); } }, 300);
+}
+function tourEnd(finished) {
+  if (!T) return; cancelAnimationFrame(T.raf); clearInterval(T.watch); T = null;
+  document.querySelectorAll('.gglow').forEach(e => e.classList.remove('gglow')); $('gTip').hidden = true; $('gFing').hidden = true;
+  if (finished) { GD.tourDone = true; gSave(); setTimeout(() => toast('Done! Press and hold an app to change or delete it.'), 400); }
+}
+$('gTipEnd').onclick = () => tourEnd(false);
+
 /* ---------- start ---------- */
 // Other apps in this folder have service workers that can hand out an older saved copy of this page. When that
 // happened, load the current one once this page's own worker has taken over (at most once per session, only while idle).
@@ -880,9 +1060,9 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   try { freshen(); } catch (e) {}
   navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
 }
-applyHome();
+applyHome(); setChrome(null);
 $('bootRetry').onclick = () => location.reload();
-initStore().then(() => { loadAll(); applyHome(); renderGrid(); }, err => {
+initStore().then(() => { loadAll(); applyHome(); renderGrid(); try { guideStart(); } catch (e) {} }, err => {
   // Do not show an empty grid here: saving into it could overwrite apps that are still stored.
   document.body.classList.add('down');
   $('bootMsg').textContent = 'Could not open your saved apps (' + ((err && err.message) || 'storage error') + '). Nothing was changed. Close the hub completely and open it again, or tap Try again.';
