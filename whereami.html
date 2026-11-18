@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Where am I">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Where am I?</title>
+<link id="mf" rel="manifest">
+<style>
+:root{color-scheme:light dark}
+body{margin:0;font:15px/1.4 -apple-system,system-ui,sans-serif;background:#f5f6f8;color:#111;
+  padding:calc(12px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
+@media (prefers-color-scheme:dark){body{background:#111;color:#eee}.card{background:#1d1d20!important}td{border-color:#333!important}}
+h1{font-size:22px;margin:4px 0 10px}
+#guess{font-size:20px;font-weight:700;padding:14px;border-radius:14px;background:#0025b8;color:#fff;margin-bottom:12px}
+#guess small{display:block;font-weight:400;font-size:13px;opacity:.85;margin-top:4px}
+.card{background:#fff;border-radius:14px;padding:6px 12px;margin-bottom:12px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#888;margin:10px 0 4px}
+table{width:100%;border-collapse:collapse}
+td{padding:6px 0;border-top:1px solid #eee;vertical-align:top;word-break:break-word}
+td:first-child{width:46%;color:#777;padding-right:10px}
+td b{font-weight:600}
+.yes{color:#0a8a2a;font-weight:700}.no{color:#c22;font-weight:700}
+button{font:600 16px -apple-system,system-ui,sans-serif;padding:12px 16px;border-radius:12px;border:0;background:#0025b8;color:#fff;width:100%;margin-bottom:12px}
+#probe{position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;
+  padding-top:env(safe-area-inset-top);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left)}
+#vhprobe{position:fixed;left:0;top:0;width:0;height:100vh;visibility:hidden}
+#dvhprobe{position:fixed;left:0;top:0;width:0;height:100dvh;visibility:hidden}
+</style>
+</head>
+<body>
+<h1>Where am I?</h1>
+<div id="guess">Checking…</div>
+<button id="copy">Copy everything</button>
+<div id="out"></div>
+<div id="probe"></div><div id="vhprobe"></div><div id="dvhprobe"></div>
+<script>
+// A manifest so "Add to Home Screen" opens this as its own app
+try{var mf={name:'Where am I',short_name:'Where am I',start_url:location.href,display:'standalone',background_color:'#f5f6f8',theme_color:'#f5f6f8'};
+document.getElementById('mf').href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:'application/manifest+json'}))}catch(e){}
+
+var KEY='whereami.visits';
+var visits=[];try{visits=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){}
+var mq=function(q){try{return matchMedia(q).matches}catch(e){return 'n/a'}};
+var ua=navigator.userAgent;
+function browserName(){
+  if(/DuckDuckGo/i.test(ua))return 'DuckDuckGo';
+  if(/CriOS/.test(ua))return 'Chrome';
+  if(/FxiOS/.test(ua))return 'Firefox';
+  if(/EdgiOS|EdgA|Edg\//.test(ua))return 'Edge';
+  if(/OPiOS|OPR\//.test(ua))return 'Opera';
+  if(/FBAN|FBAV|Instagram|Line\/|Snapchat|LinkedInApp/.test(ua))return 'An app\'s built-in browser';
+  if(/Safari/.test(ua)&&/Version\//.test(ua))return 'Safari';
+  if(/iPhone|iPad/.test(ua)&&!/Safari/.test(ua))return 'Home Screen app or a built-in browser (no "Safari" in the name)';
+  if(/Chrome\//.test(ua))return 'Chrome';
+  return 'Unknown';
+}
+function px(v){return Math.round(parseFloat(v)||0)}
+function yn(v){return v===true?'<span class="yes">yes</span>':v===false?'<span class="no">no</span>':String(v)}
+function render(){
+  var p=getComputedStyle(document.getElementById('probe'));
+  var safe={top:px(p.paddingTop),right:px(p.paddingRight),bottom:px(p.paddingBottom),left:px(p.paddingLeft)};
+  var vh=document.getElementById('vhprobe').offsetHeight, dvh=document.getElementById('dvhprobe').offsetHeight;
+  var standaloneMQ=mq('(display-mode: standalone)'), fullMQ=mq('(display-mode: fullscreen)'), minMQ=mq('(display-mode: minimal-ui)'), browserMQ=mq('(display-mode: browser)');
+  var navSA=('standalone' in navigator)?navigator.standalone:'not available';
+  var homeScreen=(navSA===true)||standaloneMQ===true||fullMQ===true;
+  var g=document.getElementById('guess');
+  g.innerHTML=homeScreen?'📱 Opened from the Home Screen<small>This is running as its own app, not in a browser tab.</small>'
+                        :'🌐 Opened in a browser tab<small>Browser: '+browserName()+'</small>';
+  var vv=window.visualViewport;
+  var groups=[
+   ['The big clues',[
+     ['Opened as Home Screen app (navigator.standalone)',yn(navSA)],
+     ['Display mode: standalone',yn(standaloneMQ)],
+     ['Display mode: fullscreen',yn(fullMQ)],
+     ['Display mode: minimal-ui',yn(minMQ)],
+     ['Display mode: browser',yn(browserMQ)],
+     ['Browser (from its name)',browserName()],
+     ['Notifications available','Notification' in window?'<span class="yes">yes</span> ('+(window.Notification&&Notification.permission)+')':'<span class="no">no</span>'],
+     ['Push available',yn('PushManager' in window)]]],
+   ['Screen and window',[
+     ['Screen size',screen.width+' × '+screen.height],
+     ['Screen available size',screen.availWidth+' × '+screen.availHeight],
+     ['Window inner size',innerWidth+' × '+innerHeight],
+     ['Window outer size',outerWidth+' × '+outerHeight],
+     ['Visible area (visualViewport)',vv?Math.round(vv.width)+' × '+Math.round(vv.height)+' (zoom '+vv.scale.toFixed(2)+')':'n/a'],
+     ['Page height 100vh / 100dvh',vh+' / '+dvh],
+     ['Screen height minus window height',(screen.height-innerHeight)+' (space taken by browser bars etc.)'],
+     ['Safe area top / right / bottom / left',safe.top+' / '+safe.right+' / '+safe.bottom+' / '+safe.left],
+     ['Pixel ratio',devicePixelRatio],
+     ['Orientation',(screen.orientation&&screen.orientation.type)||(innerWidth>innerHeight?'landscape':'portrait')]]],
+   ['How it was opened',[
+     ['Address',location.href],
+     ['Came from (referrer)',document.referrer||'(none)'],
+     ['Pages in this tab\'s history',history.length],
+     ['Opened by another window',yn(!!window.opener)],
+     ['Times opened on this device (this storage)',visits.length],
+     ['First seen here',visits[0]||'now'],
+     ['Previous visit',visits.length>1?visits[visits.length-2]:'(none)']]],
+   ['Device and browser',[
+     ['User agent',ua],
+     ['Platform',navigator.platform||'n/a'],
+     ['Language',navigator.language],
+     ['Touch points',navigator.maxTouchPoints],
+     ['Dark mode',yn(mq('(prefers-color-scheme: dark)'))],
+     ['Reduced motion',yn(mq('(prefers-reduced-motion: reduce)'))],
+     ['Fine pointer (mouse)',yn(mq('(pointer: fine)'))],
+     ['Secure page (https)',yn(isSecureContext)],
+     ['Cookies on',yn(navigator.cookieEnabled)],
+     ['Service workers available',yn('serviceWorker' in navigator)],
+     ['Share sheet available',yn(!!navigator.share)],
+     ['Storage estimate',window.__est||'checking…'],
+     ['Storage kept permanently',window.__pers==null?'checking…':yn(window.__pers)],
+     ['Time zone',Intl.DateTimeFormat().resolvedOptions().timeZone]]]];
+  var h='';groups.forEach(function(gr){h+='<div class="card"><h2>'+gr[0]+'</h2><table>';gr[1].forEach(function(r){h+='<tr><td>'+r[0]+'</td><td><b>'+r[1]+'</b></td></tr>'});h+='</table></div>'});
+  document.getElementById('out').innerHTML=h;
+  window.__text=g.innerText.replace(/\n/g,' – ')+'\n\n'+groups.map(function(gr){return gr[0].toUpperCase()+'\n'+gr[1].map(function(r){return r[0]+': '+String(r[1]).replace(/<[^>]+>/g,'')}).join('\n')}).join('\n\n');
+}
+try{visits.push(new Date().toLocaleString());localStorage.setItem(KEY,JSON.stringify(visits.slice(-20)))}catch(e){}
+if(navigator.storage&&navigator.storage.estimate)navigator.storage.estimate().then(function(e){window.__est=Math.round(e.usage/1024)+' KB used of about '+Math.round(e.quota/1048576)+' MB';render()});
+else window.__est='n/a';
+if(navigator.storage&&navigator.storage.persisted)navigator.storage.persisted().then(function(v){window.__pers=v;render()});else window.__pers='n/a';
+render();
+addEventListener('resize',render);addEventListener('orientationchange',function(){setTimeout(render,300)});
+if(window.visualViewport)visualViewport.addEventListener('resize',render);
+document.getElementById('copy').onclick=function(){var t=window.__text,b=this;
+  function done(){b.textContent='Copied ✓';setTimeout(function(){b.textContent='Copy everything'},1500)}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,function(){prompt('Copy this:',t)});else prompt('Copy this:',t)};
+</script>
+</body>
+</html>
