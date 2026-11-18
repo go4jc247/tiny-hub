@@ -12,6 +12,18 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tiny Hub" id="amt">
 <title>Tiny Hub</title>
+<script>
+// Set the Home Screen name and icon straight away, before anything else loads, from a quick copy saved last time
+// (or from the address, after setup). The phone may read them the moment the page opens.
+(function () { try {
+  var dirs = location.pathname.split('/').filter(Boolean); if (dirs.length && /\.[a-z0-9]+$/i.test(dirs[dirs.length - 1])) dirs.pop();
+  var m = {}; try { m = JSON.parse(localStorage.getItem('tinyhub-mirror:' + (dirs.pop() || 'root').toLowerCase())) || {}; } catch (e) {}
+  var n = new URLSearchParams(location.search).get('n'); if (n) m.name = n.slice(0, 24);
+  window.__boot = m;
+  if (m.name) { document.title = m.name; document.getElementById('amt').content = m.name; }
+  if (m.icon) { document.getElementById('ati').href = m.icon; document.getElementById('fav').href = m.icon; }
+} catch (e) {} })();
+</script>
 <style>
 :root{--bg:#f5f6f8;--card:#fff;--tx:#1b1f24;--mut:#667085;--bd:#e3e6ea;--ac:#0025b8;--empty:#d9dde3;--ok:#1a7f37;--bad:#cf222e}
 @media(prefers-color-scheme:dark){:root{--bg:#0e1116;--card:#171b22;--tx:#e6e9ee;--mut:#8b94a3;--bd:#262c36;--ac:#4c8dff;--empty:#2a303a;--ok:#3fb950;--bad:#f85149}}
@@ -310,7 +322,7 @@ function drawHubIcon(S) {
   return c.toDataURL('image/png');
 }
 const DEFAULT_ICON = drawHubIcon(512);
-const BUILD = '2026-11-18b';            // version of this file, shown in Settings. Raise it whenever the file changes.
+const BUILD = '2026-11-18c';            // version of this file, shown in Settings. Raise it whenever the file changes.
 
 /* Storage: IndexedDB (room for large apps) with a copy in memory, so reading stays instant.
    Falls back to localStorage (about 5 MB) only where IndexedDB does not exist, e.g. some private modes. */
@@ -871,13 +883,16 @@ addEventListener('message', e => {
 
 /* ---------- home screen name + icon ---------- */
 let hDraft = {};
+let storeReady = false;
 function applyHome() {
-  const name = (home.name || 'Tiny Hub'), icon = home.icon || DEFAULT_ICON;
+  const src = storeReady ? home : Object.assign({}, window.__boot || {}, home);
+  const name = (src.name || 'Tiny Hub'), icon = src.icon || DEFAULT_ICON;
+  if (storeReady) try { localStorage.setItem('tinyhub-mirror:' + FOLDER, JSON.stringify({ name: home.name || '', icon: home.icon || '' })); } catch (e) {}
   document.title = name; $('amt').content = name; $('title').textContent = name; $('title').style.visibility = home.hideTitle ? 'hidden' : '';
   $('ati').href = icon; $('fav').href = icon;
   const base = location.origin + location.pathname.replace(/[^/]*$/, '');
   const mime = (icon.match(/^data:([^;]+)/) || [])[1] || 'image/png';
-  const mf = { name, short_name: name, start_url: base + (home.name ? '?n=' + encodeURIComponent(home.name) : ''), scope: base, display: 'standalone', background_color: pageBg(), theme_color: pageBg(),
+  const mf = { name, short_name: name, start_url: base + (src.name ? '?n=' + encodeURIComponent(src.name) : ''), scope: base, display: 'standalone', background_color: pageBg(), theme_color: pageBg(),
     icons: [{ src: icon, sizes: '512x512', type: mime, purpose: 'any' }] };
   try { $('mf').href = URL.createObjectURL(new Blob([JSON.stringify(mf)], { type: 'application/manifest+json' })); } catch (e) {}
 }
@@ -1069,7 +1084,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 }
 applyHome(); setChrome(null);
 $('bootRetry').onclick = () => location.reload();
-initStore().then(() => { loadAll(); applyHome(); renderGrid(); try { guideStart(); } catch (e) {} }, err => {
+initStore().then(() => { loadAll(); storeReady = true; applyHome(); renderGrid(); try { guideStart(); } catch (e) {} }, err => {
   // Do not show an empty grid here: saving into it could overwrite apps that are still stored.
   document.body.classList.add('down');
   $('bootMsg').textContent = 'Could not open your saved apps (' + ((err && err.message) || 'storage error') + '). Nothing was changed. Close the hub completely and open it again, or tap Try again.';
