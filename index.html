@@ -961,6 +961,11 @@ function guideStart() {
     gSave();
     if (GD.homeOpens === 1 && !slots.some(Boolean)) { gIcons(); $('gHello').hidden = false; }
   } else {
+    const q = new URLSearchParams(location.search);
+    if (q.get('g') === 'share') {                                       // back after setup: show how to add it
+      q.delete('g'); try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '')); } catch (e) {}
+      $('gShare').hidden = false; $('gArrow').hidden = false; return;
+    }
     GD.browserOpens = (GD.browserOpens || 0) + 1; gSave();
     if (!GD.dontAsk && GD.browserOpens <= 3) { gIcons(); $('gNever').checked = false; $('gWelcome').hidden = false; }
   }
@@ -984,8 +989,10 @@ $('gNext2').onclick = async () => {
   const h = Object.assign({}, home); delete h.name; delete h.icon; if (name) h.name = name; if (gIcon) h.icon = gIcon;
   if (!(await ls.set('home', JSON.stringify(h)))) { toast('Could not save: storage is full or blocked.'); return; }
   home = h; applyHome();
-  try { history.replaceState(null, '', location.pathname + (name ? '?n=' + encodeURIComponent(name) : '')); } catch (e) {}   // so the icon opens with the name
-  $('gSetup').hidden = true; $('gShare').hidden = false; $('gArrow').hidden = false;
+  // The phone reads the name and icon for "Add to Home Screen" when the page loads, not when they change,
+  // so load the page again with the new ones, then show the Share steps. The name also rides along in the address.
+  $('gSetup').hidden = true;
+  location.replace(location.pathname + '?' + (name ? 'n=' + encodeURIComponent(name) + '&' : '') + 'g=share');
 };
 $('gShareDone').onclick = () => { $('gShare').hidden = true; $('gArrow').hidden = true; };
 $('gAgain').onclick = () => { $('settings').hidden = true; gSetupOpen(); };
