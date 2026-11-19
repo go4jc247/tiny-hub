@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Permission Tester</title>
+<meta name="description" content="Asks for each permission and shows what it gets">
+<style>
+:root{color-scheme:light dark;--bg:#f5f6f8;--card:#fff;--tx:#111;--mut:#777;--bd:#e5e7eb;--ac:#0025b8}
+@media(prefers-color-scheme:dark){:root{--bg:#111;--card:#1c1c20;--tx:#eee;--mut:#999;--bd:#333;--ac:#4c8dff}}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 -apple-system,system-ui,sans-serif;
+  padding:calc(12px + env(safe-area-inset-top)) 14px calc(24px + env(safe-area-inset-bottom))}
+h1{font-size:22px;margin:4px 0 4px}
+#where{color:var(--mut);font-size:13px;margin-bottom:12px}
+.card{background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.top{display:flex;align-items:center;gap:10px}
+.top b{flex:1;font-size:17px}
+.st{font-size:13px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--bd);color:var(--mut)}
+.st.ok{background:#d9f5e1;color:#0a7a2a}.st.no{background:#fde2e2;color:#b42318}.st.na{background:#eee;color:#888}
+@media(prefers-color-scheme:dark){.st.ok{background:#12391f;color:#5fd283}.st.no{background:#3d1515;color:#ff8a8a}.st.na{background:#2a2a2a}}
+button{font:600 15px -apple-system,system-ui,sans-serif;border:0;border-radius:10px;padding:10px 14px;background:var(--ac);color:#fff;margin-top:10px;margin-right:6px}
+button.s{background:var(--bd);color:var(--tx)}
+.out{margin-top:10px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.out:empty{display:none}
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+td{padding:4px 0;border-top:1px solid var(--bd)}td:first-child{color:var(--mut);width:45%}
+video{width:100%;border-radius:10px;margin-top:10px;background:#000;display:none}
+.meter{height:14px;border-radius:7px;background:var(--bd);overflow:hidden;margin-top:10px;display:none}
+.meter i{display:block;height:100%;width:0;background:#22c55e;transition:width .08s}
+</style>
+</head>
+<body>
+<h1>Permission Tester</h1>
+<div id="where"></div>
+<div id="list"></div>
+
+<div class="card" id="lab">
+  <div class="top"><b>🧪 Clipboard lab</b></div>
+  <div style="color:var(--mut);font-size:13px;margin-top:4px">Try each way. On iPhone, a small <b>Paste</b> bubble may pop up after you tap: tap the bubble, or it counts as blocked.</div>
+  <div id="labInfo" class="out" style="display:block"></div>
+  <button id="cRead">1. Read text</button>
+  <button id="cReadAll">2. Read everything</button>
+  <button id="cWrite">3. Copy, then read back</button>
+  <div style="margin-top:12px;font-size:14px"><b>4. Paste box</b> (press and hold, then Paste). This works with no permission at all:</div>
+  <textarea id="cBox" rows="3" style="width:100%;box-sizing:border-box;margin-top:6px;font:inherit;padding:8px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)" placeholder="Press and hold here, then Paste"></textarea>
+  <button class="s" id="cClear">Clear log</button>
+  <div id="cLog" class="out" style="display:block;font-size:13px"></div>
+</div>
+
+<script>
+var W = (function () {
+  var s = [];
+  var standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  var framed = false; try { framed = window.top !== window; } catch (e) { framed = true; }
+  s.push(standalone ? 'Home Screen app' : 'Browser tab');
+  if (framed) s.push('inside a frame (e.g. a Tiny Hub slot)');
+  s.push(isSecureContext ? 'secure page' : 'NOT a secure page (most permissions need https)');
+  return s.join(' · ');
+})();
+document.getElementById('where').textContent = 'Running as: ' + W;
+
+function esc(t) { return String(t).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+function rows(o) { var h = '<table>'; for (var k in o) h += '<tr><td>' + esc(k) + '</td><td><b>' + esc(o[k]) + '</b></td></tr>'; return h + '</table>'; }
+function fmt(n, d) { return n == null || isNaN(n) ? '—' : Number(n).toFixed(d == null ? 2 : d); }
+function errText(e) { return (e && (e.name ? e.name + ': ' : '') + (e.message || e)) || 'Unknown error'; }
+
+var TESTS = [
+  { id: 'mic', name: '🎤 Microphone', has: function () { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); },
+    run: function (c) {
+      return navigator.mediaDevices.getUserMedia({ audio: true }).then(function (st) {
+        c.stream = st; var tr = st.getAudioTracks()[0], set = tr.getSettings ? tr.getSettings() : {};
+        c.out.innerHTML = rows({ 'Device': tr.label || '(hidden)', 'Sample rate': set.sampleRate || '—', 'Channels': set.channelCount || '—', 'Echo cancel': set.echoCancellation == null ? '—' : set.echoCancellation }) + '<div class="mut" style="margin-top:8px">Speak: the bar shows your volume.</div>';
+        var m = c.el.querySelector('.meter'); m.style.display = 'block';
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) { var ac = new AC(), an = ac.createAnalyser(); ac.createMediaStreamSource(st).connect(an); an.fftSize = 512; var d = new Uint8Array(an.fftSize); c.ac = ac;
+          (function tick() { if (!c.stream) return; an.getByteTimeDomainData(d); var p = 0; for (var i = 0; i < d.length; i++) p = Math.max(p, Math.abs(d[i] - 128)); m.firstChild.style.width = Math.min(100, p / 1.28) + '%'; requestAnimationFrame(tick); })(); }
+      });
+    },
+    stop: function (c) { if (c.stream) c.stream.getTracks().forEach(function (t) { t.stop(); }); c.stream = null; if (c.ac) c.ac.close(); c.el.querySelector('.meter').style.display = 'none'; } },
+
+  { id: 'cam', name: '📷 Camera', has: function () { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); },
+    run: function (c) {
+      c.facing = c.facing === 'user' ? 'environment' : 'user';
+      if (c.stream) c.stream.getTracks().forEach(function (t) { t.stop(); });
+      return navigator.mediaDevices.getUserMedia({ video: { facingMode: c.facing } }).then(function (st) {
+        c.stream = st; var v = c.el.querySelector('video'); v.srcObject = st; v.style.display = 'block'; v.play().catch(function () {});
+        var tr = st.getVideoTracks()[0], set = tr.getSettings ? tr.getSettings() : {};
+        c.out.innerHTML = rows({ 'Camera': tr.label || '(hidden)', 'Facing': set.facingMode || c.facing, 'Size': (set.width || '?') + ' × ' + (set.height || '?'), 'Frame rate': fmt(set.frameRate, 0) });
+        c.btn.textContent = 'Switch camera';
+      });
+    },
+    stop: function (c) { if (c.stream) c.stream.getTracks().forEach(function (t) { t.stop(); }); c.stream = null; var v = c.el.querySelector('video'); v.srcObject = null; v.style.display = 'none'; c.btn.textContent = 'Ask'; } },
+
+  { id: 'geo', name: '📍 Location', has: function () { return !!navigator.geolocation; },
+    run: function (c) {
+      return new Promise(function (ok, bad) {
+        c.watch = navigator.geolocation.watchPosition(function (p) {
+          var k = p.coords;
+          c.out.innerHTML = rows({ 'Latitude': fmt(k.latitude, 6), 'Longitude': fmt(k.longitude, 6), 'Accuracy': fmt(k.accuracy, 0) + ' m', 'Altitude': k.altitude == null ? '—' : fmt(k.altitude, 1) + ' m', 'Speed': k.speed == null ? '—' : fmt(k.speed, 1) + ' m/s', 'Heading': k.heading == null || isNaN(k.heading) ? '—' : fmt(k.heading, 0) + '°', 'Updated': new Date(p.timestamp).toLocaleTimeString() });
+          ok();
+        }, function (e) { bad({ name: 'Location error ' + e.code, message: e.message }); }, { enableHighAccuracy: true, timeout: 20000 });
+      });
+    },
+    stop: function (c) { if (c.watch != null) navigator.geolocation.clearWatch(c.watch); c.watch = null; } },
+
+  { id: 'clip', name: '📋 Clipboard (paste)', has: function () { return !!(navigator.clipboard && navigator.clipboard.readText); },
+    run: function (c) {
+      return navigator.clipboard.readText().then(function (t) {
+        c.out.innerHTML = rows({ 'Characters': t.length }) + '<div style="margin-top:8px">' + (t ? esc(t.slice(0, 300)) + (t.length > 300 ? '…' : '') : '<i>(clipboard is empty)</i>') + '</div>';
+      });
+    } },
+
+  { id: 'notif', name: '🔔 Notifications', has: function () { return 'Notification' in window; },
+    run: function (c) {
+      return Promise.resolve(Notification.requestPermission()).then(function (p) {
+        var info = { 'Answer': p };
+        if (p === 'granted') { try { new Notification('Permission Tester', { body: 'Test notification ✓' }); info['Test'] = 'sent'; } catch (e) { info['Test'] = 'could not show here (' + errText(e) + ')'; } }
+        c.out.innerHTML = rows(info);
+        if (p !== 'granted') throw { name: 'Not allowed', message: 'answer was "' + p + '"' };
+      });
+    },
+    note: 'On iPhone, notifications only exist in Home Screen apps.' },
+
+  { id: 'motion', name: '📱 Motion and tilt', has: function () { return 'DeviceMotionEvent' in window || 'DeviceOrientationEvent' in window; },
+    run: function (c) {
+      var ask = [];
+      if (window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function') ask.push(DeviceMotionEvent.requestPermission());
+      if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') ask.push(DeviceOrientationEvent.requestPermission());
+      return Promise.all(ask).then(function (ans) {
+        if (ans.some(function (a) { return a !== 'granted'; })) throw { name: 'Not allowed', message: 'answer was "' + ans.join(', ') + '"' };
+        var o = {}, m = {}, got = false;
+        function show() { c.out.innerHTML = rows({ 'Tilt front/back (beta)': fmt(o.beta, 0) + '°', 'Tilt left/right (gamma)': fmt(o.gamma, 0) + '°', 'Compass (alpha)': fmt(o.alpha, 0) + '°', 'Move x / y / z': fmt(m.x, 1) + ' / ' + fmt(m.y, 1) + ' / ' + fmt(m.z, 1) }); }
+        c.onO = function (e) { got = true; o = e; show(); };
+        c.onM = function (e) { got = true; m = e.acceleration || e.accelerationIncludingGravity || {}; show(); };
+        addEventListener('deviceorientation', c.onO); addEventListener('devicemotion', c.onM);
+        c.out.textContent = 'Move your phone…';
+        setTimeout(function () { if (!got) c.out.textContent = 'Allowed, but no readings came in (no sensor here, or they are blocked in this frame).'; }, 3000);
+      });
+    },
+    stop: function (c) { removeEventListener('deviceorientation', c.onO); removeEventListener('devicemotion', c.onM); } },
+
+  { id: 'wake', name: '💡 Keep screen on (extra)', has: function () { return !!(navigator.wakeLock && navigator.wakeLock.request); },
+    run: function (c) { return navigator.wakeLock.request('screen').then(function (l) { c.lock = l; c.out.innerHTML = rows({ 'Screen stays on': 'yes, until you tap Stop or leave' }); }); },
+    stop: function (c) { if (c.lock) c.lock.release(); c.lock = null; } },
+
+  { id: 'share', name: '📤 Share sheet (extra)', has: function () { return !!navigator.share; },
+    run: function (c) { return navigator.share({ title: 'Permission Tester', text: 'Share test from Permission Tester' }).then(function () { c.out.innerHTML = rows({ 'Result': 'shared (not cancelled)' }); }); } },
+
+  { id: 'vibe', name: '📳 Vibration (extra)', has: function () { return typeof navigator.vibrate === 'function'; },
+    run: function (c) { var r = navigator.vibrate([200, 100, 200]); c.out.innerHTML = rows({ 'Vibrate returned': r }); if (!r) throw { name: 'Refused', message: 'vibrate() returned false' }; } }
+];
+
+var list = document.getElementById('list');
+TESTS.forEach(function (t) {
+  var el = document.createElement('div'); el.className = 'card';
+  el.innerHTML = '<div class="top"><b>' + t.name + '</b><span class="st">not asked</span></div>' +
+    (t.note ? '<div style="color:var(--mut);font-size:13px;margin-top:4px">' + t.note + '</div>' : '') +
+    '<div class="meter"><i></i></div><video playsinline muted></video><div class="out"></div>' +
+    '<button class="go">Ask</button>' + (t.stop ? '<button class="s stop" hidden>Stop</button>' : '');
+  list.appendChild(el);
+  var c = { el: el, out: el.querySelector('.out'), btn: el.querySelector('.go') }, st = el.querySelector('.st'), stopB = el.querySelector('.stop');
+  function set(cls, txt) { st.className = 'st ' + cls; st.textContent = txt; }
+  if (!t.has()) { set('na', 'not available'); c.btn.disabled = true; c.btn.style.opacity = .4; return; }
+  if (navigator.permissions && navigator.permissions.query) {
+    var pn = { mic: 'microphone', cam: 'camera', geo: 'geolocation', notif: 'notifications', clip: 'clipboard-read' }[t.id];
+    if (pn) navigator.permissions.query({ name: pn }).then(function (r) { if (st.textContent === 'not asked') st.textContent = 'not asked (' + r.state + ')'; }).catch(function () {});
+  }
+  c.btn.onclick = function () {
+    set('', 'asking…');
+    var r; try { r = t.run(c); } catch (e) { r = Promise.reject(e); }
+    Promise.resolve(r).then(function () { set('ok', 'works'); if (stopB) stopB.hidden = false; },
+      function (e) { set('no', 'blocked'); c.out.innerHTML = '<span style="color:#c22">' + esc(errText(e)) + '</span>'; });
+  };
+  if (stopB) stopB.onclick = function () { t.stop(c); stopB.hidden = true; set('', 'stopped'); };
+});
+
+/* ---- clipboard lab ---- */
+(function () {
+  var log = document.getElementById('cLog');
+  function L(ok, t) { var d = document.createElement('div'); d.style.cssText = 'padding:4px 0;border-top:1px solid var(--bd);color:' + (ok ? 'inherit' : '#c22');
+    d.textContent = new Date().toLocaleTimeString() + '  ' + (ok ? '✓ ' : '✗ ') + t; log.prepend(d); }
+  var info = {};
+  var framed = false; try { framed = window.top !== window; } catch (e) { framed = true; }
+  info['Inside a frame'] = framed ? 'yes' : 'no';
+  info['readText available'] = !!(navigator.clipboard && navigator.clipboard.readText) ? 'yes' : 'no';
+  info['read (all types) available'] = !!(navigator.clipboard && navigator.clipboard.read) ? 'yes' : 'no';
+  info['writeText available'] = !!(navigator.clipboard && navigator.clipboard.writeText) ? 'yes' : 'no';
+  var pp = document.permissionsPolicy || document.featurePolicy;
+  if (pp && pp.allowsFeature) { info['Frame allows paste'] = pp.allowsFeature('clipboard-read') ? 'yes' : 'no'; info['Frame allows copy'] = pp.allowsFeature('clipboard-write') ? 'yes' : 'no'; }
+  else info['Frame rules'] = 'browser does not say';
+  document.getElementById('labInfo').innerHTML = rows(info);
+  function short(t) { t = String(t); return t.length > 120 ? t.slice(0, 120) + '…' : t; }
+  document.getElementById('cRead').onclick = function () {
+    if (!navigator.clipboard || !navigator.clipboard.readText) return L(false, 'readText is not available here');
+    navigator.clipboard.readText().then(function (t) { L(true, 'Read text: "' + short(t) + '" (' + t.length + ' characters)'); }, function (e) { L(false, 'Read text: ' + errText(e)); });
+  };
+  document.getElementById('cReadAll').onclick = function () {
+    if (!navigator.clipboard || !navigator.clipboard.read) return L(false, 'read is not available here');
+    navigator.clipboard.read().then(function (items) {
+      if (!items.length) return L(true, 'Read everything: clipboard is empty');
+      items.forEach(function (it, i) { L(true, 'Item ' + (i + 1) + ' types: ' + it.types.join(', '));
+        if (it.types.indexOf('text/plain') >= 0) it.getType('text/plain').then(function (b) { return b.text(); }).then(function (t) { L(true, 'Item ' + (i + 1) + ' text: "' + short(t) + '"'); }); });
+    }, function (e) { L(false, 'Read everything: ' + errText(e)); });
+  };
+  document.getElementById('cWrite').onclick = function () {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) return L(false, 'writeText is not available here');
+    var t = 'Tester ' + Math.floor(Math.random() * 10000);
+    navigator.clipboard.writeText(t).then(function () {
+      L(true, 'Copied "' + t + '"');
+      if (navigator.clipboard.readText) navigator.clipboard.readText().then(function (r) { L(r === t, 'Read back: "' + short(r) + '"' + (r === t ? ' (matches)' : ' (different)')); }, function (e) { L(false, 'Read back: ' + errText(e)); });
+    }, function (e) { L(false, 'Copy: ' + errText(e)); });
+  };
+  document.getElementById('cBox').addEventListener('paste', function (e) {
+    var d = e.clipboardData; if (!d) return L(false, 'Paste box: no clipboard data');
+    var t = d.getData('text/plain'); L(true, 'Paste box got types: ' + Array.prototype.join.call(d.types, ', ') + (t ? ' | text: "' + short(t) + '"' : ''));
+    if (d.files && d.files.length) L(true, 'Paste box got ' + d.files.length + ' file(s): ' + Array.prototype.map.call(d.files, function (f) { return f.type || f.name; }).join(', '));
+  });
+  document.getElementById('cClear').onclick = function () { log.textContent = ''; };
+})();
+</script>
+</body>
+</html>
