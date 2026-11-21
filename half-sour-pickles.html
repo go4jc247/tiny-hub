@@ -54,7 +54,7 @@
   ul.ing{list-style:none;padding:0;margin:0}
   ul.ing li{display:flex;justify-content:space-between;gap:12px;padding:9px 2px;border-bottom:1px dashed #e6dcc0;font-size:16px}
   ul.ing li:last-child{border-bottom:0}
-  ul.ing .amt{font-weight:700;color:var(--green-d);white-space:nowrap;text-align:right}
+  ul.ing .amt{font-weight:700;color:var(--green-d);text-align:right;max-width:55%;flex-shrink:0}
   ol.steps{padding-left:22px;margin:0}
   ol.steps li{margin:0 0 10px;line-height:1.45}
   ol.steps li b{color:var(--green-d)}
@@ -62,7 +62,7 @@
   .start{
     position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
     background:var(--green);color:#fff;border:0;border-radius:999px;
-    padding:16px 28px;font-size:18px;font-weight:800;font-family:inherit;
+    padding:16px 20px;font-size:clamp(15px,4.6vw,18px);font-weight:800;font-family:inherit;white-space:nowrap;
     box-shadow:0 8px 22px rgba(43,90,40,.35);cursor:pointer;display:flex;align-items:center;gap:10px;
     width:calc(100% - 32px);max-width:420px;justify-content:center;
   }
@@ -95,12 +95,12 @@
   .prev{background:rgba(255,255,255,.85);color:var(--green-d)}
   .next{background:var(--green);color:#fff;box-shadow:0 6px 16px rgba(43,90,40,.3)}
   .prev:disabled{opacity:.4}
-  .lang{display:flex;gap:10px;margin:0 0 6px}
-  .langbtn{flex:1;height:58px;border-radius:18px;border:3px solid #fff;background:rgba(255,255,255,.65);color:var(--green-d);
-    font-family:inherit;font-size:19px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(60,80,40,.12)}
+  .lang{display:flex;gap:8px;margin:0 0 6px}
+  .langbtn{flex:1;min-width:0;height:58px;padding:0 4px;white-space:nowrap;border-radius:18px;border:3px solid #fff;background:rgba(255,255,255,.65);color:var(--green-d);
+    font-family:inherit;font-size:clamp(14px,4.2vw,19px);font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(60,80,40,.12)}
   .langbtn.on{background:var(--green);color:#fff;border-color:var(--green-d);box-shadow:0 4px 0 var(--green-d)}
   .lang-splash{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;right:14px;max-width:460px;margin:0 auto}
-  .lang-splash .langbtn{height:52px;font-size:17px}
+  .lang-splash .langbtn{height:52px;font-size:clamp(13px,3.9vw,17px)}
   #splash .upd:active{transform:translateX(-50%) scale(.97)}
   /* Install screen */
   #install{position:fixed;inset:0;z-index:15;display:none;flex-direction:column;overflow:auto;
@@ -121,6 +121,9 @@
   .inow{width:100%;height:58px;border:0;border-radius:18px;background:var(--green);color:#fff;font-family:inherit;font-size:19px;font-weight:800;margin:6px 0 10px;cursor:pointer;box-shadow:0 5px 0 var(--green-d)}
   .ilater{width:100%;height:54px;border:2px solid var(--green);border-radius:18px;background:rgba(255,255,255,.7);color:var(--green-d);font-family:inherit;font-size:17px;font-weight:800;cursor:pointer}
   .howinstall{display:block;margin:6px auto 0;border:0;background:none;color:var(--green-d);font-family:inherit;font-size:16px;font-weight:700;text-decoration:underline;cursor:pointer}
+  .units{display:flex;gap:6px;background:#fff;border:2px solid #e3dcc6;border-radius:14px;padding:4px}
+  .unitbtn{flex:1;height:42px;border:0;border-radius:10px;background:transparent;font-family:inherit;font-size:15px;font-weight:800;color:var(--green-d);cursor:pointer}
+  .unitbtn.on{background:var(--green);color:#fff}
   /* Splash */
   #splash{
     position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -134,7 +137,7 @@
   #splash .wiggle{transform-origin:150px 190px;animation:wiggle 1.6s ease-in-out .9s infinite}
   #splash .arm{transform-origin:212px 140px;animation:wave .5s ease-in-out infinite alternate}
   #splash .drop{animation:fly 1.4s ease-out infinite}
-  #splash h2{font-size:clamp(34px,10vw,58px);margin:4px 0 0;color:#fff;letter-spacing:1px;
+  #splash h2{font-size:clamp(28px,9vw,58px);margin:4px 0 0;color:#fff;letter-spacing:1px;
     text-shadow:0 4px 0 #2b5a28, 0 8px 16px rgba(0,0,0,.25);transform:rotate(-4deg);animation:pop .5s .5s both}
   #splash .tag{font-size:clamp(16px,4.6vw,22px);color:#24361f;font-weight:800;margin-top:12px;
     background:#fff7c2;padding:8px 16px;border-radius:999px;box-shadow:0 4px 0 #c9a24a;animation:pop .5s .8s both}
@@ -165,6 +168,7 @@
 <div class="lang lang-splash">
   <button class="langbtn" data-lang="en" type="button">🇺🇸 English</button>
   <button class="langbtn" data-lang="lt" type="button">🇱🇹 Lietuvių</button>
+  <button class="langbtn" data-lang="ru" type="button">🇷🇺 Русский</button>
 </div>
   <svg class="big" viewBox="0 0 300 300" aria-hidden="true">
     <!-- brine splash drops -->
@@ -219,6 +223,7 @@
 <div class="lang">
   <button class="langbtn" data-lang="en" type="button">🇺🇸 English</button>
   <button class="langbtn" data-lang="lt" type="button">🇱🇹 Lietuvių</button>
+  <button class="langbtn" data-lang="ru" type="button">🇷🇺 Русский</button>
 </div>
   <header>
     <svg viewBox="0 0 100 100" aria-hidden="true">
@@ -255,12 +260,19 @@
       </div>
     </div>
     <div class="field" style="margin-top:12px">
+      <label data-i="units"></label>
+      <div class="units">
+        <button type="button" class="unitbtn" data-u="metric" data-i="u_metric"></button>
+        <button type="button" class="unitbtn" data-u="us" data-i="u_us"></button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:12px">
       <label for="rate" data-i="how_often"></label>
       <select id="rate">
-        <option value="2" data-i="r2">Now and then (about 2 a week each)</option>
-        <option value="4" selected data-i="r4">Regularly (about 4 a week each)</option>
-        <option value="7" data-i="r7">Every day (about 1 a day each)</option>
-        <option value="14" data-i="r14">Pickle fanatic (about 2 a day each)</option>
+        <option value="2" data-i="r2">Now and then (~2 a week each)</option>
+        <option value="4" selected data-i="r4">Regularly (~4 a week each)</option>
+        <option value="7" data-i="r7">Every day (~1 a day each)</option>
+        <option value="14" data-i="r14">Pickle fanatic (~2 a day each)</option>
       </select>
     </div>
     <div class="summary" id="summary"></div>
@@ -325,13 +337,14 @@ const I18N = {
     i_now:'📲 Install now', i_later:'Maybe later → go to the recipe', i_link:'📲 How to add to your home screen',
     i_ios:['Open this page in <b>Safari</b>.','Tap the <b>Share</b> button <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#2f7de1\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3v12M8 7l4-4 4 4\"/><path d=\"M6 11H5v10h14V11h-1\"/></svg> at the bottom of the screen.','Scroll down and tap <b>Add to Home Screen</b>.','Tap <b>Add</b> in the top-right corner.'],
     i_android:['Open this page in <b>Chrome</b>.','Tap the <b>⋮</b> menu in the top-right corner.','Tap <b>Install app</b> or <b>Add to Home screen</b>.','Tap <b>Install</b> to confirm.'],
+    units:'Units', u_metric:'Metric (kg, liters)', u_us:'US (lb, cups)',
     doc_title:'Half-Sour Pickles',
     title:'Half-Sour Pickles',
     sub:'Crisp, garlicky, deli-style. Lightly fermented in salt brine.',
     how_much:'🧮 How much are you making?',
     people:'People', days:'Days of supply', how_often:'How often do you eat them?',
-    r2:'Now and then (about 2 a week each)', r4:'Regularly (about 4 a week each)',
-    r7:'Every day (about 1 a day each)', r14:'Pickle fanatic (about 2 a day each)',
+    r2:'Now and then (~2 a week each)', r4:'Regularly (~4 a week each)',
+    r7:'Every day (~1 a day each)', r14:'Pickle fanatic (~2 a day each)',
     ingredients:'🥒 Ingredients', steps:'📋 Steps', tips_h:'💡 Tips',
     tips:'Taste one each day while they ferment. Stop sooner if you want them greener and crunchier, or go longer for more sour.<br><br>A thin white film on top of the brine is normal; skim it off. Throw the batch out if you see fuzzy mold or it smells rotten.<br><br>For extra crunch, add a grape leaf or a black tea bag to each jar.',
     start:'▶ Start step-by-step',
@@ -343,7 +356,7 @@ const I18N = {
     upd_none:'You already have the latest version. ✓', upd_done:'Updated! Reloading…',
     upd_fail:"Couldn't reach the server. Try again later.", upd_nosw:'Updates only work when the app is installed from a website.',
     days_caps:'DAYS', temp:'34–38°F',
-    summary:(p,d,t)=>`<b>${p}</b> ${p>1?'people':'person'} × <b>${d}</b> days ≈ <b>${t}</b> pickles.<br>`,
+    summary:(p,d,t)=>`<b>${p}</b> ${p>1?'people':'person'} × <b>${d}</b> ${d>1?'days':'day'} ≈ <b>${t}</b> ${t>1?'pickles':'pickle'}.<br>`,
     buy:(A)=>`Buy <b>${A.cucumbers}</b> of Kirby cucumbers (about ${A.pickles} pickles). You'll need ${A.container}.`,
     batches:(A)=>`Make <b>${A.batches} batches</b> of <b>${A.cucumbers}</b> cucumbers each, about 2 weeks apart.`,
     warn:(A)=>`⏳ Half-sours stay good for about 3–4 weeks and keep getting more sour. For ${A.days} days, start a fresh batch every 2 weeks. The amounts below are <b>for one batch</b>, which needs ${A.container}.`,
@@ -352,11 +365,51 @@ const I18N = {
       ['Prep the cucumbers',`Scrub <b>${A.cucumbers}</b> of Kirby cucumbers in cold water. Trim a thin slice off each blossom end so they stay crunchy. Leave them whole.`],
       ['Make the brine',`Stir <b>${A.salt}</b> of salt into <b>${A.water}</b> of water until it dissolves. Warm a little of the water to help, then let it cool. Add <b>${A.vinegar}</b> of vinegar.`],
       ['Add the flavor',`Split these between ${A.container}: <b>${A.garlic}</b> garlic, <b>${A.bay}</b> bay leaves, <b>${A.chilies}</b> chilies, <b>${A.celery}</b> celery stalk${A.celery>1?'s':''}, and the spices (mustard, coriander, dill, fenugreek, allspice, peppercorns, pepper flakes).`],
-      ['Pack the jars','Stand the cucumbers upright and pack them in tightly. Snug is good; they shrink a little as they ferment.'],
+      ['Pack the jars','Stand the cucumbers upright and fit as many in as you can. Fill the jar well, since they shrink a little as they ferment.'],
       ['Cover and weigh down','Pour brine over until the cucumbers are <b>completely covered</b>. Weigh them down (a zip bag filled with brine works) and cover loosely.'],
       ['Let it ferment','Leave at cool room temperature for <b>2–3 days</b>. They\'re ready when the skins turn olive in patches but the centers are still bright green.'],
-      ['Chill and enjoy','Close the lids tightly and refrigerate at <b>34–38°F</b>. Best after a day cold. Eat within 3–4 weeks.'],
+      ['Chill and enjoy',`Close the lids tightly and refrigerate at <b>${A.temp}</b>. Best after a day cold. Eat within 3–4 weeks.`],
       ['You did it!', A.batches>1 ? 'Set a reminder to start batch #2 in about 2 weeks. Enjoy! 🥒' : 'Enjoy your homemade half-sours! 🥒']
+    ]
+  },
+  ru: {
+    i_title:'Добавьте на главный экран', i_sub:'Откроется как приложение и будет работать без интернета.',
+    i_now:'📲 Установить', i_later:'Может, позже → к рецепту', i_link:'📲 Как добавить на главный экран',
+    i_ios:['Откройте эту страницу в <b>Safari</b>.','Внизу экрана нажмите кнопку <b>Поделиться</b> (Share) <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#2f7de1\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3v12M8 7l4-4 4 4\"/><path d=\"M6 11H5v10h14V11h-1\"/></svg>.','Прокрутите вниз и нажмите <b>На экран «Домой»</b> (Add to Home Screen).','Нажмите <b>Добавить</b> (Add) в правом верхнем углу.'],
+    i_android:['Откройте эту страницу в <b>Chrome</b>.','Нажмите меню <b>⋮</b> в правом верхнем углу.','Нажмите <b>Установить приложение</b> или <b>Добавить на главный экран</b>.','Подтвердите, нажав <b>Установить</b>.'],
+    units:'Единицы измерения', u_metric:'Метрические', u_us:'Американские',
+    doc_title:'Малосольные огурцы',
+    title:'Малосольные огурцы',
+    sub:'Хрустящие, с чесноком, как из деликатесной лавки. Слегка заквашены в рассоле.',
+    how_much:'🧮 Сколько готовим?',
+    people:'Сколько человек', days:'На сколько дней', how_often:'Как часто вы их едите?',
+    r2:'Иногда (~2 в нед. на чел.)', r4:'Регулярно (~4 в нед. на чел.)',
+    r7:'Каждый день (~1 в день на чел.)', r14:'Фанат огурцов (~2 в день на чел.)',
+    ingredients:'🥒 Ингредиенты', steps:'📋 Приготовление', tips_h:'💡 Советы',
+    tips:'Пока огурцы бродят, пробуйте по одному каждый день. Если любите зелёные и хрустящие – остановите раньше, покислее – подержите дольше.<br><br>Тонкая белая плёнка на рассоле – это нормально, просто снимите её. Если видите пушистую плесень или чувствуете гнилой запах – выбросьте.<br><br>Для хруста положите в каждую банку лист хрена, вишни или винограда либо пакетик чёрного чая.',
+    start:'▶ Готовить по шагам',
+    back:'← Назад', next:'Далее →', finish:'Готово ✓', closeb:'Закрыть ✓',
+    stepof:(a,b)=>`Шаг ${a} из ${b}`, finished:'Готово',
+    per_batch:'(на одну партию)',
+    splash_h:'Огурчик-Молодец', splash_tag:'Давай солить! 🥒', splash_tap:'Нажми, чтобы начать 👆',
+    upd:'🔄 Проверить обновления', upd_checking:'Проверяем…', upd_offline:'Нет интернета. Подключитесь и попробуйте снова.',
+    upd_none:'У вас уже последняя версия. ✓', upd_done:'Обновлено! Перезагрузка…',
+    upd_fail:'Не удалось связаться с сервером. Попробуйте позже.', upd_nosw:'Обновления работают, только если приложение открыто с сайта.',
+    days_caps:'ДНЯ', temp:'1–3 °C',
+    summary:(p,d,t)=>`<b>${p}</b> чел. × <b>${d}</b> дн. ≈ <b>${t}</b> шт. огурцов.<br>`,
+    buy:(A)=>`Купите <b>${A.cucumbers}</b> маленьких огурцов для засолки (~${A.pickles} шт.). Понадобится: ${A.container}.`,
+    batches:(A)=>`Сделайте <b>${A.batches} ${ruPlural(A.batches,'партию','партии','партий')}</b> по <b>${A.cucumbers}</b> огурцов, примерно раз в 2 недели.`,
+    warn:(A)=>`⏳ Малосольные огурцы хранятся около 3–4 недель и постепенно становятся кислее. На ${A.days} дн. начинайте новую партию каждые 2 недели. Количества ниже – <b>на одну партию</b>. Понадобится: ${A.container}.`,
+    ing:['Маленькие огурцы для засолки','Вода, фильтрованная','Крупная соль без йода','Белый уксус (5–6 %)','Чеснок, раздавленный','Семена горчицы','Семена кориандра','Семена укропа','Семена пажитника (шамбалы)','Душистый перец горошком','Чёрный перец горошком','Хлопья острого перца','Лавровый лист','Маленькие сушёные перчики чили','Стебли сельдерея, нарезанные палочками'],
+    S:(A)=>[
+      ['Подготовьте огурцы',`Вымойте <b>${A.cucumbers}</b> огурцов в холодной воде. С каждого срежьте тонкий кружок с того кончика, где был цветок, – так они останутся хрустящими. Оставьте целыми.`],
+      ['Приготовьте рассол',`Растворите <b>${A.salt}</b> соли в <b>${A.water}</b> воды. Чтобы соль быстрее растворилась, подогрейте часть воды, затем остудите. Добавьте <b>${A.vinegar}</b> уксуса (если уксус 9 %, кладите вдвое меньше).`],
+      ['Добавьте пряности',`Разложите по банкам (${A.container}): чеснок – <b>${A.garlic}</b>, лавровый лист – <b>${A.bay}</b>, чили – <b>${A.chilies}</b>, сельдерей – <b>${A.celery}</b>, и все пряности (семена горчицы, кориандра, укропа, пажитника, душистый и чёрный перец, хлопья перца).`],
+      ['Уложите огурцы','Поставьте огурцы вертикально и уложите как можно плотнее. Плотно – это хорошо: при брожении они немного усаживаются.'],
+      ['Залейте и придавите','Залейте рассолом так, чтобы огурцы были <b>полностью покрыты</b>. Придавите грузом (подойдёт зип-пакет, наполненный рассолом) и неплотно накройте.'],
+      ['Дайте забродить','Оставьте при прохладной комнатной температуре на <b>2–3 дня</b>. Огурцы готовы, когда кожица местами стала оливковой, а середина ещё ярко-зелёная.'],
+      ['Охладите и наслаждайтесь',`Плотно закройте и храните в холодильнике при <b>${A.temp}</b>. Вкуснее всего через сутки в холоде. Съешьте за 3–4 недели.`],
+      ['У вас получилось!', A.batches>1 ? 'Не забудьте через ~2 недели начать следующую партию. Приятного аппетита! 🥒' : 'Приятного аппетита! 🥒']
     ]
   },
   lt: {
@@ -364,20 +417,21 @@ const I18N = {
     i_now:'📲 Įdiegti dabar', i_later:'Galbūt vėliau → į receptą', i_link:'📲 Kaip pridėti prie pradžios ekrano',
     i_ios:['Atidarykite šį puslapį naršyklėje <b>Safari</b>.','Ekrano apačioje bakstelėkite <b>Bendrinti</b> (Share) <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#2f7de1\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3v12M8 7l4-4 4 4\"/><path d=\"M6 11H5v10h14V11h-1\"/></svg>.','Slinkite žemyn ir bakstelėkite <b>Pridėti prie pradžios ekrano</b> (Add to Home Screen).','Viršuje dešinėje bakstelėkite <b>Pridėti</b> (Add).'],
     i_android:['Atidarykite šį puslapį naršyklėje <b>Chrome</b>.','Viršuje dešinėje bakstelėkite meniu <b>⋮</b>.','Bakstelėkite <b>Įdiegti programą</b> (Install app) arba <b>Pridėti prie pradžios ekrano</b>.','Patvirtinkite bakstelėdami <b>Įdiegti</b> (Install).'],
+    units:'Matavimo vienetai', u_metric:'Metriniai (kg, l)', u_us:'JAV (sv., puod.)',
     doc_title:'Mažai sūdyti agurkai',
     title:'Mažai sūdyti agurkai',
-    sub:'Traškūs, su česnaku, kaip iš delikatesų parduotuvės. Lengvai fermentuoti sūrymu.',
+    sub:'Traškūs, su česnaku, kaip iš delikatesų parduotuvės. Lengvai rauginti sūryme.',
     how_much:'🧮 Kiek gaminsite?',
     people:'Žmonių skaičius', days:'Kelioms dienoms', how_often:'Kaip dažnai valgote?',
-    r2:'Retkarčiais (~2 per savaitę kiekvienam)', r4:'Reguliariai (~4 per savaitę kiekvienam)',
-    r7:'Kasdien (~1 per dieną kiekvienam)', r14:'Agurkų fanatikas (~2 per dieną kiekvienam)',
+    r2:'Retkarčiais (~2/sav. žmogui)', r4:'Reguliariai (~4/sav. žmogui)',
+    r7:'Kasdien (~1/d. žmogui)', r14:'Agurkų fanatikas (~2/d. žmogui)',
     ingredients:'🥒 Ingredientai', steps:'📋 Gaminimo eiga', tips_h:'💡 Patarimai',
-    tips:'Fermentuojant kasdien paragaukite po vieną. Norite žalesnių ir traškesnių – sustabdykite anksčiau, rūgštesnių – palaikykite ilgiau.<br><br>Plona balta plėvelė ant sūrymo yra normalu – tiesiog nugriebkite. Jei matote pūkuotą pelėsį ar jaučiate puvėsių kvapą, išmeskite.<br><br>Kad būtų traškesni, į kiekvieną stiklainį įdėkite krienų, vyšnių ar vynuogių lapą arba juodosios arbatos pakelį.',
+    tips:'Kol agurkai rūgsta, kasdien paragaukite po vieną. Norite žalesnių ir traškesnių – sustabdykite anksčiau, rūgštesnių – palaikykite ilgiau.<br><br>Plona balta plėvelė ant sūrymo yra normalu – tiesiog nugriebkite. Jei matote pūkuotą pelėsį ar jaučiate puvėsių kvapą, išmeskite.<br><br>Kad būtų traškesni, į kiekvieną stiklainį įdėkite krienų, vyšnių ar vynuogių lapą arba juodosios arbatos pakelį.',
     start:'▶ Gaminti žingsnis po žingsnio',
     back:'← Atgal', next:'Toliau →', finish:'Baigti ✓', closeb:'Uždaryti ✓',
     stepof:(a,b)=>`${a} žingsnis iš ${b}`, finished:'Baigta',
     per_batch:'(vienai partijai)',
-    splash_h:'Didysis Agurkas', splash_tag:'Pradedam rauginti! 🥒', splash_tap:'Spausk ir pradėk 👆',
+    splash_h:'Agurkų Karalius', splash_tag:'Pradedam rauginti! 🥒', splash_tap:'Spausk ir pradėk 👆',
     upd:'🔄 Tikrinti atnaujinimus', upd_checking:'Tikrinama…', upd_offline:'Nėra interneto ryšio. Prisijunkite ir bandykite dar kartą.',
     upd_none:'Jau turite naujausią versiją. ✓', upd_done:'Atnaujinta! Perkraunama…',
     upd_fail:'Nepavyko pasiekti serverio. Bandykite vėliau.', upd_nosw:'Atnaujinimai veikia tik įdiegus programėlę iš svetainės.',
@@ -388,24 +442,29 @@ const I18N = {
     warn:(A)=>`⏳ Mažai sūdyti agurkai gerai išsilaiko apie 3–4 savaites ir vis labiau rūgsta. ${A.days} dienoms pradėkite naują partiją kas 2 savaites. Žemiau nurodyti kiekiai – <b>vienai partijai</b>. Reikės: ${A.container}.`,
     ing:['Maži raugimui skirti agurkai','Vanduo, filtruotas','Rupi druska be jodo','Baltasis actas (5–6 %)','Česnakai, sutraiškyti','Garstyčių sėklos','Kalendrų sėklos','Krapų sėklos','Ožragės sėklos','Kvapieji pipirai','Juodųjų pipirų žirneliai','Aitriųjų pipirų dribsniai','Lauro lapai','Maži džiovinti čili pipirai','Salierų stiebai, supjaustyti lazdelėmis'],
     S:(A)=>[
-      ['Paruoškite agurkus',`Nuplaukite <b>${A.cucumbers}</b> agurkų šaltu vandeniu. Nuo kiekvieno žiedo galo nupjaukite ploną griežinėlį – taip liks traškesni. Palikite sveikus.`],
-      ['Paruoškite sūrymą',`<b>${A.water}</b> vandens ištirpinkite <b>${A.salt}</b> druskos. Kad greičiau ištirptų, dalį vandens pašildykite, tada atvėsinkite. Įpilkite <b>${A.vinegar}</b> acto (jei actas 9 %, dėkite perpus mažiau).`],
+      ['Paruoškite agurkus',`Nuplaukite <b>${A.cucumbers}</b> agurkų šaltu vandeniu. Nuo kiekvieno agurko žiedinio galo nupjaukite ploną griežinėlį – taip liks traškesni. Palikite sveikus.`],
+      ['Paruoškite sūrymą',`<b>${A.water}</b> vandens ištirpinkite <b>${A.salt}</b> druskos. Kad greičiau ištirptų, dalį vandens pašildykite, tada atvėsinkite. Įpilkite <b>${A.vinegar}</b> acto (jei actas 9 %, pilkite perpus mažiau).`],
       ['Sudėkite prieskonius',`Paskirstykite į stiklainius (${A.container}): česnakai – <b>${A.garlic}</b>, lauro lapai – <b>${A.bay}</b>, čili – <b>${A.chilies}</b>, salierų stiebai – <b>${A.celery}</b>, ir visi prieskoniai (garstyčių, kalendrų, krapų, ožragės sėklos, kvapieji ir juodieji pipirai, pipirų dribsniai).`],
-      ['Sudėkite agurkus','Sustatykite agurkus stačius ir sudėkite kuo tankiau. Tankiai – gerai: fermentuojantis jie šiek tiek susitraukia.'],
+      ['Sudėkite agurkus','Sustatykite agurkus stačius ir sudėkite kuo tankiau. Tankiai – gerai: rūgdami jie šiek tiek susitraukia.'],
       ['Užpilkite ir prislėkite','Užpilkite sūrymu, kad agurkai būtų <b>visiškai apsemti</b>. Prislėkite (tinka užspaudžiamas maišelis su sūrymu) ir laisvai uždenkite.'],
-      ['Leiskite fermentuotis','Palikite vėsioje kambario temperatūroje <b>2–3 dienas</b>. Agurkai paruošti, kai žievelė vietomis tampa alyvuogių spalvos, o vidurys dar ryškiai žalias.'],
-      ['Atvėsinkite ir mėgaukitės','Sandariai uždarykite ir laikykite šaldytuve <b>1–3 °C</b> temperatūroje. Skaniausi po paros šaltyje. Suvalgykite per 3–4 savaites.'],
+      ['Leiskite parūgti','Palikite vėsioje kambario temperatūroje <b>2–3 dienas</b>. Agurkai paruošti, kai odelė vietomis tampa alyvuogių spalvos, o vidurys dar ryškiai žalias.'],
+      ['Atvėsinkite ir mėgaukitės',`Sandariai uždarykite ir laikykite šaldytuve <b>${A.temp}</b> temperatūroje. Skaniausi po paros šaltyje. Suvalgykite per 3–4 savaites.`],
       ['Jums pavyko!', A.batches>1 ? 'Nepamirškite po ~2 savaičių pradėti kitą partiją. Skanaus! 🥒' : 'Skanaus! 🥒']
     ]
   }
 };
 const t = k => I18N[LANG][k];
+let UNITS_PREF = null;
+try { UNITS_PREF = localStorage.getItem('pickleUnits'); } catch(e){}
+const units = () => UNITS_PREF || (LANG === 'en' ? 'us' : 'metric');
+function setUnits(u){ UNITS_PREF = u; try { localStorage.setItem('pickleUnits', u); } catch(e){} applyLang(); }
 
 function applyLang(){
   document.documentElement.lang = LANG;
   document.title = t('doc_title');
   document.querySelectorAll('[data-i]').forEach(el => { el.innerHTML = t(el.dataset.i); });
   document.querySelectorAll('.langbtn').forEach(b => b.classList.toggle('on', b.dataset.lang === LANG));
+  document.querySelectorAll('.unitbtn').forEach(b => b.classList.toggle('on', b.dataset.u === units()));
   if (typeof renderInstall === 'function') renderInstall();
   calc();
 }
@@ -435,8 +494,13 @@ function frac(x, step){
   if (f === 0) return String(w);
   return (w ? w + ' ' : '') + (FR[f] || f);
 }
-const dec = (x, d=1) => (Math.round(x*10**d)/10**d).toString().replace('.', ',');
+const dec = (x, d=1) => { const v = (Math.round(x*10**d)/10**d).toString(); return LANG === 'en' ? v : v.replace('.', ','); };
 function spoon(tsp){
+  if (LANG === 'ru'){
+    if (tsp < 0.1) return 'щепотка';
+    if (tsp >= 3) return frac(tsp/3, 0.25) + ' ст. л.';
+    return frac(tsp, 0.125) + ' ч. л.';
+  }
   if (LANG === 'lt'){
     if (tsp < 0.1) return 'žiupsnelis';
     if (tsp >= 3) return frac(tsp/3, 0.25) + ' v. š.';
@@ -447,6 +511,12 @@ function spoon(tsp){
   return frac(tsp, 0.125) + ' tsp';
 }
 function whole(n){ return Math.max(1, Math.ceil(n - 0.01)); }
+function ruPlural(n, one, few, many){
+  const a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+}
 function ltPlural(n, one, few, many){
   const a = n % 10, b = n % 100;
   if (a === 1 && b !== 11) return one;
@@ -470,29 +540,30 @@ function calc(){
   A = { people, days, batches, lb, jars, pickles: Math.round(lb*PICKLES_PER_LB),
         bay: whole(n('bay')), chilies: whole(n('chilies')), celery: whole(n('celery')) };
   ['mustard','coriander','dill','fenugreek','allspice','pepper','flakes'].forEach(k => A[k] = spoon(n(k)));
-  if (LANG === 'lt'){
-    const vin = n('vinegar')*15;
-    Object.assign(A, {
-      cucumbers: dec(lb*0.4536) + ' kg',
-      water: dec(n('water')*0.24) + ' l',
-      salt: `${g} g`,
-      vinegar: Math.round(vin/5)*5 + ' ml',
-      garlic: whole(n('garlic')) + ' skilt.',
-      container: (jars === 1 ? '1 × 2 l stiklainis' : `${jars} × 2 l ${ltPlural(jars,'stiklainis','stiklainiai','stiklainių')}`)
-               + (lb >= 6 && lb <= 8 ? ' arba 8 l raugimo puodas' : '')
-    });
+  const UW = {
+    en:{kg:'kg',l:'l',g:'g',ml:'ml',lb:'lb',cups:'cups',qt:'qt',tb:'tbsp',cup:'cup',clove:'cloves'},
+    lt:{kg:'kg',l:'l',g:'g',ml:'ml',lb:'sv.',cups:'puod.',qt:'kvort.',tb:'v. š.',cup:'puod.',clove:'skilt.'},
+    ru:{kg:'кг',l:'л',g:'г',ml:'мл',lb:'фунт.',cups:'стак.',qt:'кварт.',tb:'ст. л.',cup:'стак.',clove:'зуб.'}
+  }[LANG];
+  const metric = units() === 'metric', c = n('water'), tb = n('vinegar');
+  const big = lb >= 6 && lb <= 8;
+  Object.assign(A, {
+    cucumbers: metric ? dec(lb*0.4536) + ' ' + UW.kg : frac(lb,0.5) + ' ' + UW.lb,
+    water: metric ? dec(c*0.24) + ' ' + UW.l : frac(c,0.5) + ' ' + UW.cups + (c >= 8 ? ` (${frac(c/4,0.5)} ${UW.qt})` : ''),
+    salt: metric ? `${g} ${UW.g}` : `${g} ${UW.g} (≈ ${frac(g/17.5,0.5)} ${UW.tb}${LANG==='en'?' Morton kosher':''})`,
+    vinegar: metric ? Math.round(tb*15/5)*5 + ' ' + UW.ml : (tb >= 16 ? frac(tb/16,0.25) + ' ' + UW.cup : frac(tb,0.5) + ' ' + UW.tb),
+    garlic: whole(n('garlic')) + ' ' + UW.clove,
+    temp: metric ? '1–3 °C' : '34–38°F'
+  });
+  if (LANG === 'ru'){
+    const sz = metric ? '2 л' : '2 кварт.';
+    A.container = `${jars} × ${sz} ${ruPlural(jars,'банка','банки','банок')}` + (big ? (metric ? ' или эмалированная кастрюля на 8 л' : ' или эмалированная кастрюля на 2 галлона') : '');
+  } else if (LANG === 'lt'){
+    const sz = metric ? '2 l' : '2 kvortų';
+    A.container = `${jars} × ${sz} ${ltPlural(jars,'stiklainis','stiklainiai','stiklainių')}` + (big ? (metric ? ' arba 8 l raugimo puodas' : ' arba 2 galonų raugimo puodas') : '');
   } else {
-    const c = n('water'), tb = n('vinegar');
-    Object.assign(A, {
-      cucumbers: frac(lb,0.5) + ' lb',
-      water: frac(c,0.5) + ' cups' + (c >= 8 ? ` (${frac(c/4,0.5)} qt)` : ''),
-      salt: `${g} g (≈ ${frac(g/17.5,0.5)} tbsp Morton kosher)`,
-      vinegar: tb >= 16 ? frac(tb/16,0.25) + ' cup' : frac(tb,0.5) + ' tbsp',
-      garlic: whole(n('garlic')) + ' cloves',
-      container: jars <= 1 ? 'one 2-quart jar'
-               : lb >= 6 && lb <= 8 ? `${jars} two-quart jars, or a 2-gallon crock`
-               : `${jars} two-quart jars`
-    });
+    const sz = metric ? '2-liter' : '2-quart', szw = metric ? 'two-liter' : 'two-quart';
+    A.container = jars <= 1 ? `one ${sz} jar` : `${jars} ${szw} jars` + (big ? (metric ? ', or an 8-liter crock' : ', or a 2-gallon crock') : '');
   }
   render(totalPickles);
 }
@@ -510,7 +581,7 @@ function render(total){
 function STEPS(){
   const arts = [ART.cuke, ART.brine, ART.spice, ART.pack, ART.weigh,
     ART.ferment.replace('>DAYS<', '>'+t('days_caps')+'<'),
-    ART.fridge.replace('>34–38°F<', '>'+t('temp')+'<'), ART.done];
+    ART.fridge.replace('>34–38°F<', '>'+A.temp+'<'), ART.done];
   return t('S')(A).map(([title,text],k)=>({title, text, art:arts[k]}));
 }
 
@@ -621,10 +692,12 @@ document.querySelectorAll('.stepper button').forEach(b=>{
   b.onclick = ()=>{ const inp=$(b.dataset.t); inp.value = Math.max(+inp.min, Math.min(+inp.max, (parseInt(inp.value)||0) + +b.dataset.d)); calc(); };
 });
 ['people','days','rate'].forEach(id=>$(id).addEventListener('input', calc));
+['people','days'].forEach(id=>$(id).addEventListener('change', ()=>{ $('people').value=A.people; $('days').value=A.days; calc(); }));
 
 // ---------- splash ----------
 function hideSplash(){ const s=$('splash'); if(!s||s.classList.contains('gone')) return; s.classList.add('gone'); setTimeout(()=>s.remove(),700); }
 $('splash').addEventListener('click', hideSplash);
+document.querySelectorAll('.unitbtn').forEach(b => b.addEventListener('click', () => setUnits(b.dataset.u)));
 document.querySelectorAll('.langbtn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); setLang(b.dataset.lang); }));
 applyLang();
 
